@@ -1,0 +1,13 @@
+syntax = "proto3";
+option go_package = "protobuf";
+
+message Item {
+  string id = 1;
+  bytes value = 2;
+  int64 timestamp = 3;
+}
+
+message Changelog {
+  string id = 1;
+  int64 timestamp = 2;
+}
