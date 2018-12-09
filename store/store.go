@@ -59,14 +59,26 @@ func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 }
 
 func waitgroupOrTimeout(wg *sync.WaitGroup, closeChan chan struct{}) {
-	wg.Wait()
-	select {
-	case closeChan <- struct{}{}:
+	go func() {
+		wg.Wait()
+
+		select {
+		case closeChan <- struct{}{}:
+		}
+	}()
+
+	for {
+		select {
+		case <-closeChan:
+			return
+
+		case <-time.After(deleteTimeout):
+			return
+		}
 	}
 }
 
-func drainErrs(errChan chan error) error {
-	var merr *multierror.Error
+func drainErrs(errChan chan error) (merr *multierror.Error) {
 	close(errChan)
 
 	for err := range errChan {
@@ -78,7 +90,7 @@ func drainErrs(errChan chan error) error {
 
 func (s *Store) Set(id string, i storage.Item) error {
 	var (
-		wg        = &sync.WaitGroup{}
+		wg        sync.WaitGroup
 		errChan   = make(chan error, len(s.Stores))
 		closeChan = make(chan struct{})
 	)
@@ -101,28 +113,19 @@ func (s *Store) Set(id string, i storage.Item) error {
 		}(store)
 	}
 
-	go waitgroupOrTimeout(wg, closeChan)
+	waitgroupOrTimeout(&wg, closeChan)
 
-	// While done hasn't been set and the time hasn't been eclipsed
-	// I think doing it this way will be faster than the select
-	// for !done && time.Now().Add(-writeTimeout) < start {
-	// TODO: should try it both ways
-	for {
-		select {
-		case <-closeChan:
-			return drainErrs(errChan)
-
-		case <-time.After(deleteTimeout):
-			return drainErrs(errChan)
-		}
-	}
+	return drainErrs(errChan)
 }
 
 func (s *Store) Delete(id string) error {
 	var (
-		wg      = &sync.WaitGroup{}
-		errChan = make(chan error, len(s.Stores))
+		wg        sync.WaitGroup
+		errChan   = make(chan error, len(s.Stores))
+		closeChan = make(chan struct{})
 	)
+
+	defer close(closeChan)
 
 	for _, store := range s.Stores {
 		wg.Add(1)
@@ -140,40 +143,9 @@ func (s *Store) Delete(id string) error {
 		}(store)
 	}
 
-	var (
-		closeChan = make(chan struct{})
-		merr      *multierror.Error
-	)
+	waitgroupOrTimeout(&wg, closeChan)
 
-	go func() {
-		wg.Wait()
-		select {
-		case closeChan <- struct{}{}:
-		}
-	}()
-
-	defer func() {
-		close(closeChan)
-		close(errChan)
-
-		for err := range errChan {
-			merr = multierror.Append(merr, err)
-		}
-	}()
-
-	// While done hasn't been set and the time hasn't been eclipsed
-	// I think doing it this way will be faster than the select
-	// for !done && time.Now().Add(-writeTimeout) < start {
-	// TODO: should try it both ways
-	for {
-		select {
-		case <-closeChan:
-			return merr
-
-		case <-time.After(writeTimeout):
-			return merr
-		}
-	}
+	return drainErrs(errChan)
 }
 
 func (s *Store) Iterator() (storage.Iter, error) {
