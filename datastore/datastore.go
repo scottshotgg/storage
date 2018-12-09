@@ -14,6 +14,14 @@ type DB struct {
 	Instance *datastore.DSInstance
 }
 
+type Iter struct {
+	I *dstore.Iterator
+}
+
+type ChangelogIter struct {
+	I *dstore.Iterator
+}
+
 func (db *DB) Get(id string) (store.Item, error) {
 	var s pb.Item
 
@@ -62,14 +70,6 @@ func (db *DB) ChangelogIterator() (store.ChangelogIter, error) {
 	return &ChangelogIter{
 		I: db.Instance.Run(context.Background(), db.Instance.NewQuery("changelog")),
 	}, nil
-}
-
-type Iter struct {
-	I *dstore.Iterator
-}
-
-type ChangelogIter struct {
-	I *dstore.Iterator
 }
 
 func (i *Iter) Next() (store.Item, error) {

@@ -1,36 +1,90 @@
 package store
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/google/uuid"
-	pb "github.com/pizzahutdigital/storage/protobufs"
+	"github.com/pizzahutdigital/storage"
 	"google.golang.org/api/iterator"
 )
 
-type Item interface {
-	ID() string
-	Value() []byte
-	MarshalBinary() (data []byte, err error)
-	UnmarshalBinary(data []byte) error
-	Timestamp() int64
-}
-
+// Store implements Storage with helpers and some ochestration
 type Store struct {
-	Stores []Storage
+	Stores []storage.Storage
 }
 
-func (s *Store) Get(id string) (Item, error) {
+// func get(s storage.Storage, id string) (<-chan storage.Item, error) {
+// 	// set up channel
+// 	// call s.Get
+// 	// write to channel
+
+// 	getChan := make(chan storage.Item, 1)
+
+// 	go func() {
+// 		fmt.Println("stuff")
+// 		fmt.Println(s.Get())
+// 	}()
+// }
+
+func (s *Store) Get(id string) (storage.Item, error) {
 	// Async over all stores here and wait with a channel for the first one
-	return nil, errors.New("Not implemented")
+	// return nil, errors.New("Not implemented")
+	// will need an errChan
+
+	var (
+		// wg      = &sync.WaitGroup{}
+		getChan = make(chan storage.Item, 10)
+		// resChan = make(chan storage.Item, 1)
+	)
+
+	// Read the response from all the stores
+	go func() {
+		for ret := range getChan {
+			if ret.Err == nil {
+				// TODO: log
+				continue
+			}
+
+			fmt.Println("ret", ret.Item)
+		}
+	}()
+
+	// Read from all stores
+	var (
+		ctx, cancelFunc = context.WithTimeout(context.Background(), time.Duration(30*time.Second))
+
+		cleanup = func() {
+			timeoutFunc()
+			cancelFunc()
+			close(getChan)
+		}
+	)
+
+	for _, store := range s.Stores {
+		go func(s storage.Storage) {
+			item, err := s.Get()
+
+			select {
+			case <-ctx.Done():
+				return
+			}
+
+			getChan <- item
+
+		}(store)
+	}
+
+	// can't close here and you can't wait here or else
+	// you will never close this if one is down
+	// close(getChan)
+
+	// return <-
 }
 
-func (s *Store) Set(id string, i Item) error {
+func (s *Store) Set(id string, i storage.Item) error {
 	// Async over all stores here and wait with a channel for the first one
 	return errors.New("Not implemented")
 }
@@ -45,123 +99,14 @@ func (s *Store) Iterator() (Iter, error) {
 	return nil, errors.New("Not implemented")
 }
 
-func (s *Store) ChangelogIterator() (ChangelogIter, error) {
+func (s *Store) ChangelogIterator() (changelog.ChangelogIter, error) {
 	// Async over all stores here and wait with a channel for the first one
 	return nil, errors.New("Not implemented")
 }
 
-func (s *Store) GetLatestChangelogForObject(id string) (*Changelog, error) {
+func (s *Store) GetLatestChangelogForObject(id string) (*changelog.Changelog, error) {
 	// Async over all stores here and wait with a channel for the first one
 	return nil, errors.New("Not implemented")
-}
-
-type Iter interface {
-	Next() (Item, error)
-}
-
-type ChangelogIter interface {
-	Next() (*Changelog, error)
-}
-
-type Storage interface {
-	// Name() string
-	// Type() storeType
-	Get(id string) (Item, error)
-	Set(id string, i Item) error
-	Delete(id string) error
-	Iterator() (Iter, error)
-	ChangelogIterator() (ChangelogIter, error)
-	GetLatestChangelogForObject(id string) (*Changelog, error)
-}
-
-type Object struct {
-	id        string
-	value     []byte
-	timestamp int64
-}
-
-type Changelog struct {
-	ID        string
-	ObjectID  string
-	Timestamp int64
-}
-
-func NewObject(id string, value []byte) *Object {
-	return &Object{
-		id:        id,
-		value:     value,
-		timestamp: GenTimestamp(),
-	}
-}
-
-func GenTimestamp() int64 {
-	return time.Now().Unix()
-}
-
-func GenChangelogID() string {
-	v4, err := uuid.NewRandom()
-
-	for err != nil {
-		log.Println("Could not gen uuid, trying again...")
-
-		v4, err = uuid.NewRandom()
-	}
-
-	return v4.String()
-}
-
-func GenInsertChangelog(i Item) *Changelog {
-	return &Changelog{
-		ID:        i.ID() + "-" + GenChangelogID(),
-		ObjectID:  i.ID(),
-		Timestamp: i.Timestamp(),
-	}
-}
-
-func GenDeleteChangelog(id string) *Changelog {
-	return &Changelog{
-		ID:        id + "-" + GenChangelogID(),
-		ObjectID:  id,
-		Timestamp: GenTimestamp(),
-	}
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (o *Object) MarshalBinary() (data []byte, err error) {
-	// return o.value, nil
-	return proto.Marshal(&pb.Item{
-		Id:        o.ID(),
-		Value:     o.Value(),
-		Timestamp: o.Timestamp(),
-	})
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (o *Object) UnmarshalBinary(data []byte) error {
-	var s pb.Item
-
-	err := proto.Unmarshal(data, &s)
-	if err != nil {
-		return err
-	}
-
-	o.id = s.GetId()
-	o.value = s.GetValue()
-	o.timestamp = s.GetTimestamp()
-
-	return nil
-}
-
-func (o *Object) ID() string {
-	return o.id
-}
-
-func (o *Object) Value() []byte {
-	return o.value
-}
-
-func (o *Object) Timestamp() int64 {
-	return o.timestamp
 }
 
 /*
@@ -182,7 +127,7 @@ Basic logic for sync:
 */
 
 func (s *Store) Sync() error {
-	var primary Storage
+	var primary storage.Storage
 	if len(s.Stores) < 1 {
 		return errors.New("nothing here to do dummy")
 	}
@@ -200,7 +145,7 @@ func (s *Store) Sync() error {
 
 	// For each item from the master's iterator ...
 	for {
-		var value Item
+		var value storage.Item
 		// Get the next item
 		value, err = iter.Next()
 		if err != nil {
@@ -221,7 +166,7 @@ func (s *Store) Sync() error {
 			// For each non-primary store attached, attempt to async retrieve the same object
 			for _, store := range s.Stores[1:len(s.Stores)] {
 				wg.Add(1)
-				go func(store Storage, item Item) {
+				go func(store storage.Storage, item storage.Item) {
 					defer wg.Done()
 
 					// Get the item from the store
@@ -305,7 +250,7 @@ func (s *Store) Sync2() error {
 				*/
 
 				// fmt.Println(s.Stores[1].(*redis.DB).Instance.SScan("changelog", 0, "", 1000000))
-				var latestCL = &Changelog{}
+				var latestCL = &changelog.Changelog{}
 				for _, store := range s.Stores[1:len(s.Stores)] {
 					// TODO: if there is no changelog then we need to compare the objects themselves...
 					latest, err := store.GetLatestChangelogForObject(cl.ObjectID)

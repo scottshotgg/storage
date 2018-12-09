@@ -7,24 +7,19 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/pizzahutdigital/storage/inmem"
-	"github.com/pizzahutdigital/storage/store"
+	"github.com/pizzahutdigital/storage/inmem2"
 	"github.com/pizzahutdigital/storage/test"
 )
 
 func init() {
 	test.DB = &inmem.DB{
-		Instance: &inmem.NonSyncStore{
-			Data: map[string]store.Item{},
-		},
+		Instance: sync.Map{},
 	}
 }
 
 func TestSize(t *testing.T) {
-	TestSet(t)
-
 	for _, data := range test.DB.(*inmem.DB).Instance.Data {
-		fmt.Println(unsafe.Sizeof(data.(*store.Object)))
+		fmt.Println(unsafe.Size(data))
 	}
 }
 
@@ -52,12 +47,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	var (
-		// item  store.Item
-		// err   error
-		// testt test.Test
-		wg = &sync.WaitGroup{}
-	)
+	var wg = &sync.WaitGroup{}
 
 	for i := 0; i < test.AmountOfTests; i++ {
 		wg.Add(1)

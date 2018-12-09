@@ -7,10 +7,6 @@ import (
 	"github.com/pizzahutdigital/storage/store"
 )
 
-// type SyncStore struct {
-// 	sync.Map
-// }
-
 type NonSyncStore struct {
 	sync.RWMutex
 	Data map[string]store.Item
@@ -18,6 +14,10 @@ type NonSyncStore struct {
 
 type DB struct {
 	Instance *NonSyncStore
+}
+
+type Iter struct {
+	// I *dstore.Iterator
 }
 
 func (db *DB) Get(id string) (store.Item, error) {
@@ -51,10 +51,6 @@ func (db *DB) Delete(id string) error {
 
 func (db *DB) GetLatestChangelogForObject(id string) (*store.Changelog, error) {
 	return nil, errors.New("Not implemented")
-}
-
-type Iter struct {
-	// I *dstore.Iterator
 }
 
 // func (i *Iter) Next() (store.Item, error) {
