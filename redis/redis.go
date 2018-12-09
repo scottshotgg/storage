@@ -1,11 +1,13 @@
 package redis
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	redigo "github.com/go-redis/redis"
-	"github.com/pizzahutdigital/storage/store"
+	"github.com/pizzahutdigital/storage/object"
+	"github.com/pizzahutdigital/storage/storage"
 	"google.golang.org/api/iterator"
 )
 
@@ -13,17 +15,18 @@ type DB struct {
 	Instance *redigo.Client
 }
 
-func (db *DB) Get(id string) (store.Item, error) {
+func (db *DB) Get(_ context.Context, id string) (storage.Item, error) {
 	value, err := db.Instance.HGet("something", id).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	var o = &store.Object{}
+	var o = &object.Object{}
+
 	return o, o.UnmarshalBinary([]byte(value))
 }
 
-func (db *DB) Set(id string, i store.Item) error {
+func (db *DB) Set(id string, i storage.Item) error {
 	_, err := db.Instance.HSet("something", id, i).Result()
 	return err
 }
@@ -32,7 +35,7 @@ func (db *DB) Delete(id string) error {
 	return db.Instance.HDel("something", id).Err()
 }
 
-func (db *DB) Iterator() (store.Iter, error) {
+func (db *DB) Iterator() (storage.Iter, error) {
 	return &Iter{
 		I: db.Instance.HScan("something", 0, "", 1000000).Iterator(),
 	}, nil
@@ -42,7 +45,7 @@ type Iter struct {
 	I *redigo.ScanIterator
 }
 
-func (i *Iter) Next() (store.Item, error) {
+func (i *Iter) Next() (storage.Item, error) {
 	ok := i.I.Next()
 	if !ok {
 		return nil, iterator.Done
@@ -64,17 +67,17 @@ func (i *Iter) Next() (store.Item, error) {
 	}
 
 	var (
-		o store.Object
+		o object.Object
 	)
 
 	return &o, o.UnmarshalBinary([]byte(i.I.Val()))
 }
 
-func (db *DB) ChangelogIterator() (store.ChangelogIter, error) {
+func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
 	return nil, errors.New("Not implemented")
 }
 
-func (db *DB) GetLatestChangelogForObject(id string) (*store.Changelog, error) {
+func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
 	fmt.Println("doin it", id)
 
 	keys, _, err := db.Instance.HScan("changelog", 0, id+"*", 1000000).Result()
@@ -88,13 +91,13 @@ func (db *DB) GetLatestChangelogForObject(id string) (*store.Changelog, error) {
 	}
 
 	var (
-		clValues = make([]store.Changelog, len(cls))
-		clAssert store.Changelog
+		clValues = make([]storage.Changelog, len(cls))
+		clAssert storage.Changelog
 		ok       bool
 	)
 
 	for i, cl := range cls {
-		clAssert, ok = cl.(store.Changelog)
+		clAssert, ok = cl.(storage.Changelog)
 		if !ok {
 			return nil, errors.New("wtf")
 		}
@@ -105,8 +108,8 @@ func (db *DB) GetLatestChangelogForObject(id string) (*store.Changelog, error) {
 	return findLatestTS(clValues), nil
 }
 
-func findLatestTS(clValues []store.Changelog) *store.Changelog {
-	var latest = &store.Changelog{}
+func findLatestTS(clValues []storage.Changelog) *storage.Changelog {
+	var latest = &storage.Changelog{}
 
 	for _, clValue := range clValues {
 		if clValue.Timestamp > latest.Timestamp {

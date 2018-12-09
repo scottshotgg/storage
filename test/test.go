@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pizzahutdigital/storage/store"
+	"github.com/pizzahutdigital/storage/object"
+	"github.com/pizzahutdigital/storage/storage"
 )
 
 type Testerino struct {
@@ -32,8 +33,8 @@ const (
 
 var (
 	WorkerChan = make(chan struct{}, WorkerLimit)
-	DB         store.Storage
-	Objs       []*store.Object
+	DB         storage.Storage
+	Objs       []*object.Object
 
 	Testeroonis = []Test{
 		Test{
@@ -58,6 +59,6 @@ func init() {
 		}
 
 		// Create an object (item) to put in the database
-		Objs = append(Objs, store.NewObject(fmt.Sprintf("some_id_%d", i), bytes))
+		Objs = append(Objs, object.New(fmt.Sprintf("some_id_%d", i), bytes))
 	}
 }

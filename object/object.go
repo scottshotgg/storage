@@ -1,5 +1,11 @@
 package object
 
+import (
+	"github.com/golang/protobuf/proto"
+	pb "github.com/pizzahutdigital/storage/protobufs"
+	"github.com/pizzahutdigital/storage/storage"
+)
+
 // Object implements Item
 type Object struct {
 	id        string
@@ -12,7 +18,7 @@ func New(id string, value []byte) *Object {
 	return &Object{
 		id:        id,
 		value:     value,
-		timestamp: GenTimestamp(),
+		timestamp: storage.GenTimestamp(),
 	}
 }
 
@@ -30,7 +36,7 @@ func (o *Object) Timestamp() int64 {
 
 // MarshalBinary implements encoding.BinaryMarshaler
 func (o *Object) MarshalBinary() (data []byte, err error) {
-	return proto.Marshal(&pb.store.Item{
+	return proto.Marshal(&pb.Item{
 		Id:        o.ID(),
 		Value:     o.Value(),
 		Timestamp: o.Timestamp(),
@@ -39,7 +45,7 @@ func (o *Object) MarshalBinary() (data []byte, err error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (o *Object) UnmarshalBinary(data []byte) error {
-	var s pb.store.Item
+	var s pb.Item
 
 	err := proto.Unmarshal(data, &s)
 	if err != nil {

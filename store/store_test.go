@@ -8,14 +8,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pizzahutdigital/storage/object"
+	"github.com/pizzahutdigital/storage/storage"
 	"github.com/pizzahutdigital/storage/store"
+	"github.com/pizzahutdigital/storage/test"
 
 	dstore "github.com/pizzahutdigital/datastore"
 	"github.com/pizzahutdigital/storage/datastore"
 
 	redigo "github.com/go-redis/redis"
 	"github.com/pizzahutdigital/storage/redis"
-	"github.com/pizzahutdigital/storage/test"
 )
 
 var (
@@ -68,7 +70,7 @@ func init() {
 			wg.Add(1)
 			test.WorkerChan <- struct{}{}
 
-			go func(i int, s store.Storage, obj *store.Object) {
+			go func(i int, s storage.Storage, obj *object.Object) {
 				defer func() {
 					wg.Done()
 					<-test.WorkerChan
@@ -85,12 +87,23 @@ func init() {
 	wg.Wait()
 }
 
-func TestSync(t *testing.T) {
-	err := s.Sync()
+func TestGet(t *testing.T) {
+	ctx := context.Background()
+
+	item, err := s.Get(ctx, "some_id_59")
 	if err != nil {
-		t.Errorf("%+v", err)
+		t.Fatalf("err: %+v", err)
 	}
+
+	fmt.Println("item", item)
 }
+
+// func TestSync(t *testing.T) {
+// 	var err = s.Sync()
+// 	if err != nil {
+// 		t.Errorf("%+v", err)
+// 	}
+// }
 
 func TestSync2(t *testing.T) {
 	err := s.Sync2()

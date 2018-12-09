@@ -1,16 +1,22 @@
 package storage
 
-import "github.com/pizzahutdigital/storage/changelog"
+import (
+	"context"
+	"log"
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Storage interface {
 	// Name() string
 	// Type() storeType
-	Get(id string) (Item, error)
+	Get(ctx context.Context, id string) (Item, error)
 	Set(id string, i Item) error
 	Delete(id string) error
 	Iterator() (Iter, error)
 	ChangelogIterator() (ChangelogIter, error)
-	GetLatestChangelogForObject(id string) (*changelog.Changelog, error)
+	GetLatestChangelogForObject(id string) (*Changelog, error)
 }
 
 type Item interface {
@@ -22,9 +28,48 @@ type Item interface {
 }
 
 type ChangelogIter interface {
-	Next() (*changelog.Changelog, error)
+	Next() (*Changelog, error)
 }
 
 type Iter interface {
 	Next() (Item, error)
+}
+
+type Changelog struct {
+	ID        string
+	ObjectID  string
+	Type      string
+	Timestamp int64
+}
+
+func GenTimestamp() int64 {
+	return time.Now().Unix()
+}
+
+func GenChangelogID() string {
+	v4, err := uuid.NewRandom()
+
+	for err != nil {
+		log.Println("Could not gen uuid, trying again...")
+
+		v4, err = uuid.NewRandom()
+	}
+
+	return v4.String()
+}
+
+func GenInsertChangelog(i Item) *Changelog {
+	return &Changelog{
+		ID:        i.ID() + "-" + GenChangelogID(),
+		ObjectID:  i.ID(),
+		Timestamp: i.Timestamp(),
+	}
+}
+
+func GenDeleteChangelog(id string) *Changelog {
+	return &Changelog{
+		ID:        id + "-" + GenChangelogID(),
+		ObjectID:  id,
+		Timestamp: GenTimestamp(),
+	}
 }
