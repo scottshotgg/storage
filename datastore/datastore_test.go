@@ -10,6 +10,7 @@ import (
 
 	dstore "github.com/pizzahutdigital/datastore"
 	"github.com/pizzahutdigital/storage/datastore"
+	"github.com/pizzahutdigital/storage/query"
 	"github.com/pizzahutdigital/storage/store"
 	"github.com/pizzahutdigital/storage/test"
 	"google.golang.org/api/iterator"
@@ -55,6 +56,15 @@ func TestSet(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestSmallGet(t *testing.T) {
+	// qf :=
+
+	q := query.New(func() {
+		test.DB.Instance.GetDocument(q.ctx)
+	})
+	test.DB.GetQ()
 }
 
 func TestGet(t *testing.T) {

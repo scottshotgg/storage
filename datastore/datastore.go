@@ -32,23 +32,28 @@ var (
 	ErrTimeout = errors.New("Timeout")
 )
 
-type result struct {
-	Item *pb.Item
-	Err  error
+func (db *DB) Get(ctx context.Context, id string) (o storage.Item, err error) {
+	return o, db.Instance.GetDocument(ctx, "something", id, &o)
 }
 
-func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
+func (db *DB) GetWithTimeout(ctx context.Context, id string, timeout time.Duration) (storage.Item, error) {
+	if timeout < 1 {
+		return db.Get(ctx, id)
+	}
+
 	var (
-		s       pb.Item
-		resChan = make(chan *result)
-		res     *result
+		o       object.Object
+		resChan = make(chan *storage.Result)
+		res     *storage.Result
 	)
+
+	defer close(resChan)
 
 	go func() {
 		select {
-		case resChan <- &result{
-			Item: &s,
-			Err:  db.Instance.GetDocument(ctx, "something", id, &s),
+		case resChan <- &storage.Result{
+			Item: &o,
+			Err:  db.Instance.GetDocument(ctx, "something", id, &o),
 		}:
 		}
 	}()
@@ -60,12 +65,32 @@ func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 				return nil, res.Err
 			}
 
-			return object.New(res.Item.GetId(), res.Item.GetValue()), nil
+			return object.FromResult(res), nil
 
-		case <-time.After(GetTimeout):
+		case <-time.After(timeout):
 			return nil, ErrTimeout
 		}
 	}
+}
+
+// Use a builder pattern or `query` to make these
+func (db *DB) GetAsync(ctx context.Context, id string, timeout time.Duration) <-chan *storage.Result {
+	var resChan = make(chan *storage.Result)
+
+	go func() {
+		item, err := db.GetWithTimeout(ctx, id, timeout)
+
+		select {
+		case resChan <- &storage.Result{
+			Item: item,
+			Err:  err,
+		}:
+		}
+		// TODO: do something like this with a custom datastructure
+		// attemptChanWrite(resChan, res)
+	}()
+
+	return resChan
 }
 
 func (db *DB) Set(id string, i storage.Item) error {

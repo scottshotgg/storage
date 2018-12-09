@@ -94,7 +94,7 @@ func drainErrs(errChan chan error) (merr *multierror.Error) {
 // Make:
 //	- GetWithTimeout
 //	- GetAsync
-//	- do something with streams
+//	- do something with/for streams
 func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 	// We only _need_ a channel of size 1 but making it the len of all the
 	// stores ensures that we don't block on writing
@@ -400,3 +400,16 @@ func handleDiff(latest, cl storage.Changelog) int {
 
 	// TODO: implement this
 }
+
+// TODO: generically implement store like this and let the other db's be specific resolvers
+// func (s *Store) Getq(q *query.Query) error {
+// 	if q == nil {
+// 		return errors.New("nil query")
+// 	}
+
+// 	if q.IsAsync() {
+// 		return q.Start()
+// 	}
+
+// 	return q.Run()
+// }

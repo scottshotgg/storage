@@ -22,6 +22,14 @@ func New(id string, value []byte) *Object {
 	}
 }
 
+func FromResult(res *storage.Result) *Object {
+	return &Object{
+		id:        res.Item.ID(),
+		value:     res.Item.Value(),
+		timestamp: res.Item.Timestamp(),
+	}
+}
+
 func (o *Object) ID() string {
 	return o.id
 }

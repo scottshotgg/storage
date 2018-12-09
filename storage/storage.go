@@ -42,6 +42,11 @@ type Changelog struct {
 	Timestamp int64
 }
 
+type Result struct {
+	Item Item
+	Err  error
+}
+
 func GenTimestamp() int64 {
 	return time.Now().Unix()
 }
