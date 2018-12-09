@@ -17,12 +17,84 @@ type Store struct {
 	Stores []storage.Storage
 }
 
+// TODO: Make these configurable per store
+// will probably have to move the async stuff into the individual stores then
 const (
-	readTimeout   = 1 * time.Second
-	writeTimeout  = 2 * time.Second
-	deleteTimeout = writeTimeout
+	ReadTimeout   = 1 * time.Second
+	WriteTimeout  = 2 * time.Second
+	DeleteTimeout = WriteTimeout
 )
 
+func waitgroupOrTimeout(timeout time.Duration, wg *sync.WaitGroup, closeChan chan struct{}) {
+	go func() {
+		wg.Wait()
+
+		select {
+		case closeChan <- struct{}{}:
+		}
+	}()
+
+	for {
+		select {
+		case <-closeChan:
+			return
+
+		case <-time.After(timeout):
+			return
+		}
+	}
+}
+
+func drainErrs(errChan chan error) (merr *multierror.Error) {
+	close(errChan)
+
+	for err := range errChan {
+		merr = multierror.Append(merr, err)
+	}
+
+	return merr
+}
+
+// type result struct {
+// 	Item *pb.Item
+// 	Err  error
+// }
+
+// func getFromStore(store *storage.Storage) (storage.Item, error) {
+// 	var (
+// 		s   pb.Item
+// 		res *result
+// 		ErrTimeout = 2 * time.Second
+// 	)
+
+// 	go func() {
+// 		select {
+// 		case resChan <- &result{
+// 			Item: &s,
+// 			Err:  db.Instance.GetDocument(ctx, "something", id, &s),
+// 		}:
+// 		}
+// 	}()
+
+// 	for {
+// 		select {
+// 		case res = <-resChan:
+// 			if res.Err != nil {
+// 				return nil, res.Err
+// 			}
+
+// 			return object.New(res.Item.GetId(), res.Item.GetValue()), nil
+
+// 		case <-time.After(GetTimeout):
+// 			return nil, ErrTimeout
+// 		}
+// 	}
+// }
+
+// Make:
+//	- GetWithTimeout
+//	- GetAsync
+//	- do something with streams
 func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 	// We only _need_ a channel of size 1 but making it the len of all the
 	// stores ensures that we don't block on writing
@@ -51,41 +123,11 @@ func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 			// TODO: log which one won
 			return item, nil
 
-		case <-time.After(readTimeout):
+		case <-time.After(ReadTimeout):
 			// TODO: log
 			return nil, errors.New("timeout hit")
 		}
 	}
-}
-
-func waitgroupOrTimeout(wg *sync.WaitGroup, closeChan chan struct{}) {
-	go func() {
-		wg.Wait()
-
-		select {
-		case closeChan <- struct{}{}:
-		}
-	}()
-
-	for {
-		select {
-		case <-closeChan:
-			return
-
-		case <-time.After(deleteTimeout):
-			return
-		}
-	}
-}
-
-func drainErrs(errChan chan error) (merr *multierror.Error) {
-	close(errChan)
-
-	for err := range errChan {
-		merr = multierror.Append(merr, err)
-	}
-
-	return merr
 }
 
 func (s *Store) Set(id string, i storage.Item) error {
@@ -113,7 +155,7 @@ func (s *Store) Set(id string, i storage.Item) error {
 		}(store)
 	}
 
-	waitgroupOrTimeout(&wg, closeChan)
+	waitgroupOrTimeout(WriteTimeout, &wg, closeChan)
 
 	return drainErrs(errChan)
 }
@@ -143,7 +185,7 @@ func (s *Store) Delete(id string) error {
 		}(store)
 	}
 
-	waitgroupOrTimeout(&wg, closeChan)
+	waitgroupOrTimeout(DeleteTimeout, &wg, closeChan)
 
 	return drainErrs(errChan)
 }

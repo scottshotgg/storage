@@ -3,6 +3,7 @@ package datastore
 import (
 	"context"
 	"errors"
+	"time"
 
 	dstore "cloud.google.com/go/datastore"
 	"github.com/pizzahutdigital/datastore"
@@ -23,15 +24,48 @@ type ChangelogIter struct {
 	I *dstore.Iterator
 }
 
+const (
+	GetTimeout = 1 * time.Second
+)
+
+var (
+	ErrTimeout = errors.New("Timeout")
+)
+
+type result struct {
+	Item *pb.Item
+	Err  error
+}
+
 func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
-	var s pb.Item
+	var (
+		s       pb.Item
+		resChan = make(chan *result)
+		res     *result
+	)
 
-	err := db.Instance.GetDocument(ctx, "something", id, &s)
-	if err != nil {
-		return nil, err
+	go func() {
+		select {
+		case resChan <- &result{
+			Item: &s,
+			Err:  db.Instance.GetDocument(ctx, "something", id, &s),
+		}:
+		}
+	}()
+
+	for {
+		select {
+		case res = <-resChan:
+			if res.Err != nil {
+				return nil, res.Err
+			}
+
+			return object.New(res.Item.GetId(), res.Item.GetValue()), nil
+
+		case <-time.After(GetTimeout):
+			return nil, ErrTimeout
+		}
 	}
-
-	return object.New(s.GetId(), s.GetValue()), nil
 }
 
 func (db *DB) Set(id string, i storage.Item) error {
