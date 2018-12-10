@@ -217,3 +217,11 @@ func (instance *DSInstance) GetMultiDocuments(ctx context.Context, kind string, 
 	}
 	return nil
 }
+
+func (instance *DSInstance) Client() *datastore.Client {
+	return &instance.client
+}
+
+func (instance *DSInstance) Namespace() string {
+	return instance.namespace
+}

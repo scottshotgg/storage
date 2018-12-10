@@ -10,8 +10,8 @@ import (
 
 	dstore "github.com/pizzahutdigital/datastore"
 	"github.com/pizzahutdigital/storage/datastore"
-	"github.com/pizzahutdigital/storage/query"
-	"github.com/pizzahutdigital/storage/store"
+	"github.com/pizzahutdigital/storage/object"
+	"github.com/pizzahutdigital/storage/storage"
 	"github.com/pizzahutdigital/storage/test"
 	"google.golang.org/api/iterator"
 )
@@ -38,34 +38,58 @@ func init() {
 func TestSet(t *testing.T) {
 	var wg = &sync.WaitGroup{}
 
-	for _, obj := range test.Objs {
+	for i, obj := range test.Objs {
 		wg.Add(1)
 		test.WorkerChan <- struct{}{}
 
-		go func(obj *store.Object) {
+		go func(obj *object.Object, i int) {
 			defer func() {
 				<-test.WorkerChan
 				wg.Done()
 			}()
 
-			err := test.DB.Set(obj.ID(), obj)
+			err := test.DB.Set(obj.ID(), obj, map[string]interface{}{
+				"another": i % 10,
+			})
 			if err != nil {
 				t.Fatalf("err %+v", err)
 			}
-		}(obj)
+		}(obj, i)
 	}
 
 	wg.Wait()
 }
 
-func TestSmallGet(t *testing.T) {
-	// qf :=
+func TestGetBySK(t *testing.T) {
+	items, err := test.DB.GetBySK("another", "=", 0, -1)
+	if err != nil {
+		t.Fatalf("err %+v:", err)
+	}
 
-	q := query.New(func() {
-		test.DB.Instance.GetDocument(q.ctx)
-	})
-	test.DB.GetQ()
+	fmt.Println("items", items)
 }
+
+func TestGetMulti(t *testing.T) {
+	ids := []string{
+		"some_id_0",
+		"some_id_65",
+	}
+	items, err := test.DB.GetMulti(context.Background(), ids...)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	fmt.Println("items", items)
+}
+
+// func TestQueryGet(t *testing.T) {
+// 	// qf :=
+
+// 	q := query.New(func() {
+// 		test.DB.Instance.GetDocument(q.ctx)
+// 	})
+// 	test.DB.GetQ()
+// }
 
 func TestGet(t *testing.T) {
 	var wg = &sync.WaitGroup{}
@@ -79,7 +103,7 @@ func TestGet(t *testing.T) {
 				<-test.WorkerChan
 			}()
 
-			item, err := test.DB.Get(fmt.Sprintf("some_id_%d", i))
+			item, err := test.DB.Get(context.Background(), fmt.Sprintf("some_id_%d", i))
 			if err != nil {
 				t.Fatalf("err %+v", err)
 			}
@@ -109,7 +133,7 @@ func TestDeleteAll(t *testing.T) {
 		wg.Add(1)
 		test.WorkerChan <- struct{}{}
 
-		go func(obj *store.Object) {
+		go func(obj *object.Object) {
 			defer func() {
 				<-test.WorkerChan
 				wg.Done()
@@ -132,7 +156,7 @@ func TestIter(t *testing.T) {
 	}
 
 	var (
-		item  store.Item
+		item  storage.Item
 		testt test.Test
 	)
 

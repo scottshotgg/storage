@@ -76,7 +76,7 @@ func init() {
 					<-test.WorkerChan
 				}()
 
-				err := s.Set(fmt.Sprintf("some_id_%d", i), obj)
+				err := s.Set(fmt.Sprintf("some_id_%d", i), obj, nil)
 				if err != nil {
 					log.Fatalf("%+v", err)
 				}

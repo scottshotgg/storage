@@ -34,14 +34,12 @@ func waitgroupOrTimeout(timeout time.Duration, wg *sync.WaitGroup, closeChan cha
 		}
 	}()
 
-	for {
-		select {
-		case <-closeChan:
-			return
+	select {
+	case <-closeChan:
+		return
 
-		case <-time.After(timeout):
-			return
-		}
+	case <-time.After(timeout):
+		return
 	}
 }
 
@@ -91,6 +89,17 @@ func drainErrs(errChan chan error) (merr *multierror.Error) {
 // 	}
 // }
 
+/*
+	cases := make([]reflect.SelectCase, len(chans))
+	for i, ch := range chans {
+			cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
+	}
+	chosen, value, ok := reflect.Select(cases)
+	# ok will be true if the channel has not been closed.
+	ch := chans[chosen]
+	msg := value.String()
+*/
+
 // Make:
 //	- GetWithTimeout
 //	- GetAsync
@@ -115,22 +124,19 @@ func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 		}(store)
 	}
 
-	var item storage.Item
-	for {
-		select {
-		// TODO: look and see if this allocas shit everytime
-		case item = <-getChan:
-			// TODO: log which one won
-			return item, nil
+	select {
+	// TODO: look and see if this allocas shit everytime
+	case item := <-getChan:
+		// TODO: log which one won
+		return item, nil
 
-		case <-time.After(ReadTimeout):
-			// TODO: log
-			return nil, errors.New("timeout hit")
-		}
+	case <-time.After(ReadTimeout):
+		// TODO: log
+		return nil, errors.New("timeout hit")
 	}
 }
 
-func (s *Store) Set(id string, i storage.Item) error {
+func (s *Store) Set(id string, i storage.Item, sk map[string]interface{}) error {
 	var (
 		wg        sync.WaitGroup
 		errChan   = make(chan error, len(s.Stores))
@@ -147,7 +153,7 @@ func (s *Store) Set(id string, i storage.Item) error {
 
 			select {
 			// If you can't write the channel then just move on
-			case errChan <- store.Set(id, i):
+			case errChan <- store.Set(id, i, nil):
 
 				// TODO: use an error here and lock/append to a slice
 				//default:
@@ -190,9 +196,46 @@ func (s *Store) Delete(id string) error {
 	return drainErrs(errChan)
 }
 
-func (s *Store) Iterator() (storage.Iter, error) {
-	// Async over all stores here and wait with a channel for the first one
+func (s *Store) Next() (item storage.Item, err error) {
 	return nil, errors.New("Not implemented")
+}
+
+// func (s *Store) Next() (item storage.Item, err error) {
+// 	var resChan = make(chan *storage.Result, len(s.Stores))
+
+// 	for _, store := range s.Stores {
+// 		go func() {
+// 			item, err := store.Next()
+
+// 			select {
+// 			case resChan <- &storage.Result{
+// 				Item: item,
+// 				Err:  err,
+// 			}:
+// 				if err != nil {
+// 					close(resChan)
+// 				}
+// 			}
+// 		}()
+// 	}
+
+// 	for res := range resChan {
+// 		if res.Err != nil {
+// 			// log
+// 			continue
+// 		}
+
+// 		item = res.Item
+// 		err = res.Err
+// 	}
+
+// 	return item, err
+// }
+
+func (s *Store) Iterator() (storage.Iter, error) {
+	// create iterators for all the stores
+	return nil, errors.New("Not implemented")
+
 }
 
 func (s *Store) ChangelogIterator() (storage.ChangelogIter, error) {
