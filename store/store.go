@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,6 +17,10 @@ import (
 type Store struct {
 	Stores []storage.Storage
 }
+
+var (
+	ErrTimeout = errors.New("timeout hit")
+)
 
 // TODO: Make these configurable per store
 // will probably have to move the async stuff into the individual stores then
@@ -107,18 +112,37 @@ func drainErrs(errChan chan error) (merr *multierror.Error) {
 func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 	// We only _need_ a channel of size 1 but making it the len of all the
 	// stores ensures that we don't block on writing
+	ctx, cancelFunc := context.WithCancel(ctx)
+
+	// Defer the cancel if for some reason it is not canceled already
+	defer func() {
+		select {
+		case <-ctx.Done():
+		default:
+			cancelFunc()
+		}
+	}()
+
 	var getChan = make(chan storage.Item, len(s.Stores))
 
 	for _, store := range s.Stores {
 		go func(store storage.Storage) {
-			item, err := store.Get(ctx, id)
+			var item, err = store.Get(ctx, id)
 			if err != nil {
-				// log
+				if !strings.Contains(err.Error(), context.Canceled.Error()) {
+					// log
+				}
+
 				return
 			}
 
 			select {
-			case getChan <- item:
+			case <-ctx.Done():
+				return
+
+			default:
+				cancelFunc()
+				getChan <- item
 				close(getChan)
 			}
 		}(store)
@@ -132,7 +156,7 @@ func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 
 	case <-time.After(ReadTimeout):
 		// TODO: log
-		return nil, errors.New("timeout hit")
+		return nil, ErrTimeout
 	}
 }
 
@@ -183,6 +207,7 @@ func (s *Store) Delete(id string) error {
 
 			select {
 			// If you can't write the channel then just move on
+			// TODO: this should not actually delete
 			case errChan <- store.Delete(id):
 
 				// TODO: use an error here and lock/append to a slice

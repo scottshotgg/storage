@@ -14,9 +14,12 @@ type Storage interface {
 	Get(ctx context.Context, id string) (Item, error)
 	GetMulti(ctx context.Context, ids ...string) ([]Item, error)
 	GetBy(id, op string, value interface{}, limit int) ([]Item, error)
+
 	Set(id string, i Item, sk map[string]interface{}) error
 	Delete(id string) error
+
 	Iterator() (Iter, error)
+
 	ChangelogIterator() (ChangelogIter, error)
 	GetLatestChangelogForObject(id string) (*Changelog, error)
 }
@@ -24,9 +27,10 @@ type Storage interface {
 type Item interface {
 	ID() string
 	Value() []byte
+	Timestamp() int64
+
 	MarshalBinary() (data []byte, err error)
 	UnmarshalBinary(data []byte) error
-	Timestamp() int64
 }
 
 type ChangelogIter interface {

@@ -32,9 +32,9 @@ func FromResult(res *storage.Result) *Object {
 }
 
 func FromProps(props dstore.PropertyList) *Object {
-	// if props == nil {
-	// 	return nil
-	// }
+	if props == nil {
+		return nil
+	}
 
 	var propMap = map[string]interface{}{}
 	for _, prop := range props {
