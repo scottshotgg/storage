@@ -1,4 +1,4 @@
-package query
+package ouery
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 	"github.com/pizzahutdigital/storage/storage"
 )
 
-type Query struct {
+type Operation struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 
-	queryFuncs []func()
+	oueryFuncs []func()
 
 	results *[]storage.Item
 	err     error
@@ -29,60 +29,62 @@ type Query struct {
 	// TODO: should prob put a mutex here that is checked
 }
 
+type OpFunc func()
+
 var (
-	ErrEmptyCancelFunc = errors.New("Attempted to set cancel func to nil value")
-	ErrEmptyOutput     = errors.New("Attempted to set output to nil value")
-	ErrEmptyContext    = errors.New("Attempted to use nil context")
-	ErrEmptyQueryFunc  = errors.New("Attempted to set query func to nil value")
+	ErrEmptyCancelFunc    = errors.New("Attempted to set cancel func to nil value")
+	ErrEmptyOutput        = errors.New("Attempted to set output to nil value")
+	ErrEmptyContext       = errors.New("Attempted to use nil context")
+	ErrEmptyOperationFunc = errors.New("Attempted to set ouery func to nil value")
 
 	ErrNilResults = errors.New("Nil results")
 )
 
-func New(qf func()) *Query {
+func New(of OpFunc) *Operation {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	return &Query{
+	return &Operation{
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
-		queryFuncs: []func(){qf},
+		oueryFuncs: []func(){of},
 		results:    &[]storage.Item{},
-		future:     make(chan struct{}),
+		// future:     make(chan struct{}),
 	}
 }
 
-func (q *Query) Start() error {
-	if q.err != nil {
-		return q.err
+func (o *Operation) Start() error {
+	if o.err != nil {
+		return o.err
 	}
 
 	// start an err chan?
 	// start the streaming chans?
 
 	go func() {
-		for i, qf := range q.queryFuncs {
-			qf()
+		for i := range o.oueryFuncs {
+			o.oueryFuncs[i]()
 
-			// If the last query triggered an error then stop the process
-			if q.err != nil {
-				q.Cancel()
-				q.stage = i
+			// If the last ouery triggered an error then stop the process
+			if o.err != nil {
+				o.Cancel()
+				o.stage = i
 				break
 			}
 		}
 	}()
 
-	// There was no error in starting the query itself
+	// There was no error in starting the ouery itself
 	return nil
 }
 
-func (q *Query) Run() error {
-	err := q.Start()
+func (o *Operation) Run() error {
+	var err = o.Start()
 	if err != nil {
 		return err
 	}
 
-	futureChan := q.Future()
-	queryDoneChan := q.Done()
+	futureChan := o.Future()
+	oueryDoneChan := o.Done()
 
 	doneChan := make(chan struct{})
 
@@ -94,7 +96,7 @@ func (q *Query) Run() error {
 			case <-futureChan:
 				return
 
-			case <-queryDoneChan:
+			case <-oueryDoneChan:
 				return
 			}
 		}
@@ -102,106 +104,106 @@ func (q *Query) Run() error {
 
 	<-doneChan
 
-	if q.err != nil {
-		return q.err
+	if o.err != nil {
+		return o.err
 	}
 
-	if q.results != nil {
+	if o.results != nil {
 		return ErrNilResults
 	}
 
 	return nil
 }
 
-func (q *Query) AddQueryFunc(qf func()) *Query {
-	if qf == nil {
-		q.err = ErrEmptyQueryFunc
-		return q
+func (o *Operation) AddOperation(of func()) *Operation {
+	if of == nil {
+		o.err = ErrEmptyOperationFunc
+		return o
 	}
 
-	q.queryFuncs = append(q.queryFuncs, qf)
-	return q
+	o.oueryFuncs = append(o.oueryFuncs, of)
+	return o
 }
 
-func (q *Query) WithQueryFunc(qf func()) *Query {
-	if qf == nil {
-		q.err = ErrEmptyQueryFunc
-		return q
+func (o *Operation) WithOperation(of func()) *Operation {
+	if of == nil {
+		o.err = ErrEmptyOperationFunc
+		return o
 	}
 
-	q.queryFuncs = []func(){qf}
-	return q
+	o.oueryFuncs = []func(){of}
+	return o
 }
 
-func (q *Query) WithContext(ctx context.Context) *Query {
+func (o *Operation) WithContext(ctx context.Context) *Operation {
 	if ctx == nil {
-		q.err = ErrEmptyContext
-		return q
+		o.err = ErrEmptyContext
+		return o
 	}
 
-	q.ctx = ctx
-	return q
+	o.ctx = ctx
+	return o
 }
 
-func (q *Query) WithCancelFunc(cf context.CancelFunc) *Query {
+func (o *Operation) WithCancelFunc(cf context.CancelFunc) *Operation {
 	if cf == nil {
-		q.err = ErrEmptyCancelFunc
-		return q
+		o.err = ErrEmptyCancelFunc
+		return o
 	}
 
-	q.cancelFunc = cf
-	return q
+	o.cancelFunc = cf
+	return o
 }
 
-func (q *Query) WithTimeout(timeout time.Duration) *Query {
-	q.timeout = timeout
-	return q
+func (o *Operation) WithTimeout(timeout time.Duration) *Operation {
+	o.timeout = timeout
+	return o
 }
 
-func (q *Query) Async(async bool) *Query {
-	q.async = async
-	return q
+func (o *Operation) Async(async bool) *Operation {
+	o.async = async
+	return o
 }
 
-func (q *Query) WithOutput(output *[]storage.Item) *Query {
+func (o *Operation) WithOutput(output *[]storage.Item) *Operation {
 	if output == nil {
-		q.err = ErrEmptyOutput
-		return q
+		o.err = ErrEmptyOutput
+		return o
 	}
 
-	q.results = output
-	return q
+	o.results = output
+	return o
 }
 
-// func (q *Query) IsStream(stream bool) {
-// 	q.stream = stream
+// func (o *Operation) IsStream(stream bool) {
+// 	o.stream = stream
 // }
 
-// func (q *Query) Wait() {}
-// func (q *Query) WaitForResults() {}
+// func (o *Operation) Wait() {}
+// func (o *Operation) WaitForResults() {}
 
-func (q *Query) Done() <-chan struct{} {
-	return q.ctx.Done()
+func (o *Operation) Done() <-chan struct{} {
+	return o.ctx.Done()
 }
 
-func (q *Query) Results() []storage.Item {
-	return *q.results
+func (o *Operation) Results() []storage.Item {
+	return *o.results
 }
 
-func (q *Query) Err() error {
-	return q.err
+func (o *Operation) Err() error {
+	return o.err
 }
 
-func (q *Query) Future() <-chan struct{} {
-	return q.future
+func (o *Operation) Future() <-chan struct{} {
+	return o.future
 }
 
-func (q *Query) Cancel() {
-	if q.cancelFunc != nil {
-		q.cancelFunc()
+func (o *Operation) Cancel() {
+	if o.cancelFunc != nil {
+		o.cancelFunc()
 	}
 }
 
-func (q *Query) IsAsync() {
-	return q.async
+func (o *Operation) IsAsync() {
+	return o.async
 }
