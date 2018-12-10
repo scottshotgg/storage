@@ -15,11 +15,42 @@ type DB struct {
 	Instance *redigo.Client
 }
 
-func (db *DB) Get(_ context.Context, id string) (storage.Item, error) {
-	value, err := db.Instance.HGet("something", id).Result()
+func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
+	var (
+		value string
+		err   error
+	)
+
+	// something := make(chan struct{})
+	// go func() {
+	// 	value, err = db.Instance.HGet("something", id).Result()
+	// 	if err != nil {
+	// 		// log
+	// 	}
+
+	// 	fmt.Println("i am here")
+	// 	something <- struct{}{}
+	// }()
+
+	// select {
+	// case <-ctx.Done():
+	// 	return nil, context.Canceled
+
+	// case <-something:
+	// }
+
+	value, err = db.Instance.HGet("something", id).Result()
 	if err != nil {
+		// log
 		return nil, err
 	}
+
+	// select {
+	// case <-ctx.Done():
+	// 	return nil, context.Canceled
+
+	// default:
+	// }
 
 	var o = &object.Object{}
 
