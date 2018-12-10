@@ -72,24 +72,26 @@ func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) (err err
 	return err
 }
 
-func (db *DB) GetMulti(_ context.Context, ids ...string) (items []storage.Item, err error) {
+func (db *DB) GetMulti(_ context.Context, ids ...string) ([]storage.Item, error) {
 	if len(ids) == 0 {
-		return items, nil
+		return []storage.Item{}, nil
 	}
 
-	values, err := db.Instance.HMGet("something", ids...).Result()
+	var values, err = db.Instance.HMGet("something", ids...).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, value := range values {
-		var o = &object.Object{}
-		err = o.UnmarshalBinary([]byte(value.(string)))
+	var items = make([]storage.Item, len(values))
+	for i := range values {
+		var o object.Object
+		err = o.UnmarshalBinary([]byte(values[i].(string)))
 		if err != nil {
 			// log
+			continue
 		}
 
-		items = append(items, o)
+		items[i] = &o
 	}
 
 	return items, nil
