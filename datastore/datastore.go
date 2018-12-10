@@ -104,23 +104,17 @@ func (db *DB) GetMulti(ctx context.Context, ids ...string) (items []storage.Item
 	var (
 		itemChan = make(chan storage.Item, len(ids))
 		wg       sync.WaitGroup
+		item     storage.Item
 	)
 
-	// var keys = make([]*dstore.Key, len(ids))
 	for i := range ids {
 		wg.Add(1)
-		// keys[i] = &dstore.Key{
-		// 	Kind:      "something",
-		// 	Name:      ids[i],
-		// 	Namespace: db.Instance.Namespace(),
-		// }
-
-		// props = append(props, dstore.PropertyList{})
 
 		go func(i int) {
 			defer wg.Done()
 
-			item, err := db.Get(ctx, ids[i])
+			// TODO: could use GetWithTimeout here or wait till we have our Query interface
+			var item, err = db.Get(ctx, ids[i])
 			if err != nil {
 				// log
 				return
@@ -134,27 +128,9 @@ func (db *DB) GetMulti(ctx context.Context, ids ...string) (items []storage.Item
 	wg.Wait()
 	close(itemChan)
 
-	for item := range itemChan {
-		// if item != nil {}
+	for item = range itemChan {
 		items = append(items, item)
 	}
-
-	// err = db.Instance.Client().GetMulti(ctx, keys, &props)
-
-	// query := db.Instance.NewQuery("something")
-
-	// err = db.Instance.GetDocuments(ctx, query, &props)
-
-	// for _, prop := range props {
-	// 	if prop == nil {
-	// 		// log
-	// 		continue
-	// 	}
-
-	// 	fmt.Printf("prop %+v\n", prop)
-
-	// 	// items = append(items, object.FromProps(*prop))
-	// }
 
 	return items, nil
 }

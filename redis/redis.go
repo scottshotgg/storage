@@ -87,13 +87,13 @@ func (db *DB) GetBySK(key string, op string, value interface{}, limit int) ([]st
 
 	var ids []string
 	for _, key := range keys {
-		ids = append(ids, getIDFromKey(key))
+		ids = append(ids, extractIDFromKey(key))
 	}
 
 	return db.GetMulti(nil, ids...)
 }
 
-func getIDFromKey(key string) string {
+func extractIDFromKey(key string) string {
 	split := strings.Split(key, "::")
 	if len(split) > 1 {
 		return split[0]

@@ -70,11 +70,14 @@ func TestGetBySK(t *testing.T) {
 }
 
 func TestGetMulti(t *testing.T) {
-	ids := []string{
-		"some_id_0",
-		"some_id_65",
-	}
-	items, err := test.DB.GetMulti(context.Background(), ids...)
+	var (
+		ids = []string{
+			"some_id_0",
+			"some_id_65",
+		}
+		items, err = test.DB.GetMulti(context.Background(), ids...)
+	)
+
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

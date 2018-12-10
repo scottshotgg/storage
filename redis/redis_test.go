@@ -96,6 +96,22 @@ func TestSet(t *testing.T) {
 	wg.Wait()
 }
 
+func TestGetMulti(t *testing.T) {
+	var (
+		ids = []string{
+			"some_id_0",
+			"some_id_65",
+		}
+		items, err = test.DB.GetMulti(nil, ids...)
+	)
+
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	fmt.Println("items", items)
+}
+
 func TestGetBySK(t *testing.T) {
 	items, err := test.DB.GetBySK("another", "=", 0, -1)
 	if err != nil {
