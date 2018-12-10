@@ -64,7 +64,7 @@ func (db *DB) GetMulti(_ context.Context, ids ...string) (items []storage.Item, 
 	return items, nil
 }
 
-func (db *DB) GetBySK(key string, op string, value interface{}, limit int) ([]storage.Item, error) {
+func (db *DB) GetBy(key string, op string, value interface{}, limit int) ([]storage.Item, error) {
 	amount, err := db.Instance.SCard("::something::" + key).Result()
 	if err != nil {
 		return nil, err

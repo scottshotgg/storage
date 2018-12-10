@@ -112,8 +112,8 @@ func TestGetMulti(t *testing.T) {
 	fmt.Println("items", items)
 }
 
-func TestGetBySK(t *testing.T) {
-	items, err := test.DB.GetBySK("another", "=", 0, -1)
+func TestGetBy(t *testing.T) {
+	items, err := test.DB.GetBy("another", "=", 0, -1)
 	if err != nil {
 		t.Fatalf("err %+v:", err)
 	}

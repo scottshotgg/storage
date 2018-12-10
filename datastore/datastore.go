@@ -189,7 +189,7 @@ func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) error {
 }
 
 // Make the value have a "string" attached to it
-func (db *DB) GetBySK(key string, op string, value interface{}, limit int) (items []storage.Item, err error) {
+func (db *DB) GetBy(key string, op string, value interface{}, limit int) (items []storage.Item, err error) {
 	var (
 		ctx   = context.Background()
 		query = db.Instance.NewQuery("something").Filter(key+op, value).Limit(limit)

@@ -13,7 +13,7 @@ type Storage interface {
 	// Type() storeType
 	Get(ctx context.Context, id string) (Item, error)
 	GetMulti(ctx context.Context, ids ...string) ([]Item, error)
-	GetBySK(id, op string, value interface{}, limit int) ([]Item, error)
+	GetBy(id, op string, value interface{}, limit int) ([]Item, error)
 	Set(id string, i Item, sk map[string]interface{}) error
 	Delete(id string) error
 	Iterator() (Iter, error)

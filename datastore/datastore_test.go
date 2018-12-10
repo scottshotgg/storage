@@ -60,8 +60,8 @@ func TestSet(t *testing.T) {
 	wg.Wait()
 }
 
-func TestGetBySK(t *testing.T) {
-	items, err := test.DB.GetBySK("another", "=", 0, -1)
+func TestGetBy(t *testing.T) {
+	items, err := test.DB.GetBy("another", "=", 0, -1)
 	if err != nil {
 		t.Fatalf("err %+v:", err)
 	}
