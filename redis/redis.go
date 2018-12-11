@@ -4,16 +4,26 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	redigo "github.com/go-redis/redis"
 	"github.com/pizzahutdigital/storage/object"
 	"github.com/pizzahutdigital/storage/storage"
+	"google.golang.org/api/iterator"
 )
 
+// DB implements Storage from the storage package
 type DB struct {
 	Instance *redigo.Client
 }
+
+type ChangelogIter struct {
+	I *redigo.ScanIterator
+}
+
+var (
+	ErrTimeout        = errors.New("Timeout")
+	ErrNotImplemented = errors.New("Not implemented")
+)
 
 func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	var (
@@ -68,6 +78,13 @@ func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) (err err
 		}
 	}
 
+	changelog := storage.GenInsertChangelog(i)
+	_, err = db.Instance.HSet("changelog", changelog.ID, changelog).Result()
+	if err != nil {
+		return err
+	}
+
+	i.(*object.Object).SetTimestamp(changelog.Timestamp)
 	_, err = db.Instance.HSet("something", id, i).Result()
 	return err
 }
@@ -119,24 +136,20 @@ func (db *DB) GetBy(key string, op string, value interface{}, limit int) ([]stor
 	}
 
 	var ids []string
-	for _, key := range keys {
-		ids = append(ids, extractIDFromKey(key))
+	for i := range keys {
+		ids = append(ids, extractIDFromKey(keys[i]))
 	}
 
 	return db.GetMulti(nil, ids...)
 }
 
-func extractIDFromKey(key string) string {
-	split := strings.Split(key, "::")
-	if len(split) > 1 {
-		return split[0]
-	}
-
-	return ""
-}
-
 func (db *DB) Delete(id string) error {
 	return db.Instance.HDel("something", id).Err()
+}
+
+func (db *DB) DeleteChangelogs(ids ...string) error {
+	// return db.Instance.HDel("changelog", id).Err()
+	return db.Instance.HDel("changelog", ids...).Err()
 }
 
 func (db *DB) Iterator() (storage.Iter, error) {
@@ -146,38 +159,107 @@ func (db *DB) Iterator() (storage.Iter, error) {
 }
 
 func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
-	return nil, errors.New("Not implemented")
+	return &ChangelogIter{
+		I: db.Instance.HScan("changelog", 0, "", 1000000).Iterator(),
+	}, nil
 }
 
-func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
-	fmt.Println("doin it", id)
+func (i *ChangelogIter) Next() (*storage.Changelog, error) {
+	ok := i.I.Next()
+	if !ok {
+		return nil, iterator.Done
+	}
 
-	keys, _, err := db.Instance.HScan("changelog", 0, id+"*", 1000000).Result()
+	err := i.I.Err()
 	if err != nil {
 		return nil, err
 	}
 
-	cls, err := db.Instance.HMGet("changelog", keys...).Result()
+	ok = i.I.Next()
+	if !ok {
+		return nil, errors.New("Did not have value for key")
+	}
+
+	err = i.I.Err()
 	if err != nil {
 		return nil, err
 	}
 
 	var (
-		clValues = make([]storage.Changelog, len(cls))
-		clAssert storage.Changelog
-		ok       bool
+		cl storage.Changelog
 	)
 
-	for i, cl := range cls {
-		clAssert, ok = cl.(storage.Changelog)
-		if !ok {
-			return nil, errors.New("wtf")
-		}
+	return &cl, cl.UnmarshalBinary([]byte(i.I.Val()))
+}
 
-		clValues[i] = clAssert
+func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
+	keys, _, err := db.Instance.HScan("changelog", 0, id+"-*", 1000000).Result()
+	if err != nil {
+		return nil, err
 	}
 
-	return findLatestTS(clValues), nil
+	// var oids []string
+	// for i := range keys {
+	// 	split := strings.Split(keys[i], "-")
+
+	//
+	// }
+
+	var changelogs []storage.Changelog
+
+	for i := range keys {
+		if i%2 == 0 {
+			continue
+		}
+
+		var cl = &storage.Changelog{}
+		cl.UnmarshalBinary([]byte(keys[i]))
+
+		changelogs = append(changelogs, *cl)
+	}
+
+	return findLatestTS(changelogs), nil
+
+	// cls, err := db.Instance.HMGet("changelog", keys...).Result()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// fmt.Println("cls", cls)
+
+	// for _, cl := range cls {
+	// 	fmt.Println("cl2", cl)
+	// 	if cl == nil {
+	// 		fmt.Println("nil")
+	// 	}
+	// }
+
+	// fmt.Println("cls", cls)
+
+	// var (
+	// 	clValues = make([]storage.Changelog, len(cls))
+	// 	// ok       bool
+	// )
+
+	// for i, cl := range cls {
+	// 	// // cla, ok := cl.(string)
+	// 	// cla := cl.(string)
+	// 	// if !ok {
+	// 	// 	return nil, errors.New("Could not assert value")
+	// 	// }
+
+	// 	// err = clAssert.UnmarshalBinary([]byte(cla))
+	// 	// if err != nil {
+	// 	// 	return nil, err
+	// 	// }
+
+	// 	// clValues[i] = clAssert
+
+	// 	fmt.Println("cl", cl, i)
+	// }
+
+	// return findLatestTS(clValues), nil
+	// return nil, nil
 }
 
 func findLatestTS(clValues []storage.Changelog) *storage.Changelog {
@@ -195,3 +277,25 @@ func findLatestTS(clValues []storage.Changelog) *storage.Changelog {
 }
 
 // TODO: implement changelog stuff for redis
+
+func (db *DB) GetChangelogsForObject(id string) ([]storage.Changelog, error) {
+	keys, _, err := db.Instance.HScan("changelog", 0, id+"-*", 1000000).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var changelogs []storage.Changelog
+
+	for i := range keys {
+		if i%2 == 0 {
+			continue
+		}
+
+		var cl = &storage.Changelog{}
+		cl.UnmarshalBinary([]byte(keys[i]))
+
+		changelogs = append(changelogs, *cl)
+	}
+
+	return changelogs, nil
+}

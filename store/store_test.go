@@ -4,14 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/pizzahutdigital/storage/object"
-	"github.com/pizzahutdigital/storage/storage"
 	"github.com/pizzahutdigital/storage/store"
-	"github.com/pizzahutdigital/storage/test"
 
 	dstore "github.com/pizzahutdigital/datastore"
 	"github.com/pizzahutdigital/storage/datastore"
@@ -62,29 +58,29 @@ func init() {
 
 	s.Stores = append(s.Stores, &db2)
 
-	var wg = &sync.WaitGroup{}
+	// var wg = &sync.WaitGroup{}
 
-	// Skip the primary store for now
-	for i, s := range s.Stores[1:len(s.Stores)] {
-		for _, obj := range test.Objs {
-			wg.Add(1)
-			test.WorkerChan <- struct{}{}
+	// // Skip the primary store for now
+	// for i, s := range s.Stores[1:len(s.Stores)] {
+	// 	for _, obj := range test.Objs {
+	// 		wg.Add(1)
+	// 		test.WorkerChan <- struct{}{}
 
-			go func(i int, s storage.Storage, obj *object.Object) {
-				defer func() {
-					wg.Done()
-					<-test.WorkerChan
-				}()
+	// 		go func(i int, s storage.Storage, obj *object.Object) {
+	// 			defer func() {
+	// 				wg.Done()
+	// 				<-test.WorkerChan
+	// 			}()
 
-				err := s.Set(fmt.Sprintf("some_id_%d", i), obj, nil)
-				if err != nil {
-					log.Fatalf("%+v", err)
-				}
-			}(i, s, obj)
-		}
-	}
+	// 			err := s.Set(fmt.Sprintf("some_id_%d", i), obj, nil)
+	// 			if err != nil {
+	// 				log.Fatalf("%+v", err)
+	// 			}
+	// 		}(i, s, obj)
+	// 	}
+	// }
 
-	wg.Wait()
+	// wg.Wait()
 }
 
 func TestGet(t *testing.T) {
@@ -105,8 +101,15 @@ func TestGet(t *testing.T) {
 // 	}
 // }
 
-func TestSync2(t *testing.T) {
-	err := s.Sync2()
+// func TestSync2(t *testing.T) {
+// 	err := s.Sync2()
+// 	if err != nil {
+// 		t.Errorf("%+v", err)
+// 	}
+// }
+
+func TestSync3(t *testing.T) {
+	err := s.Sync3()
 	if err != nil {
 		t.Errorf("%+v", err)
 	}

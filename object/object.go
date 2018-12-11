@@ -23,6 +23,14 @@ func New(id string, value []byte) *Object {
 	}
 }
 
+func FromProto(i *pb.Item) *Object {
+	return &Object{
+		id:        i.GetId(),
+		value:     i.GetValue(),
+		timestamp: i.GetTimestamp(),
+	}
+}
+
 func FromResult(res *storage.Result) *Object {
 	return &Object{
 		id:        res.Item.ID(),
@@ -93,6 +101,10 @@ func FromProps(props dstore.PropertyList) *Object {
 		value:     propMap["value"].([]byte),
 		timestamp: propMap["timestamp"].(int64),
 	}
+}
+
+func (o *Object) SetTimestamp(ts int64) {
+	o.timestamp = ts
 }
 
 func (o *Object) ID() string {

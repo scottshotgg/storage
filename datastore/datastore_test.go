@@ -179,3 +179,11 @@ func TestIter(t *testing.T) {
 		}
 	}
 }
+
+func TestGetChangelogsForObject(t *testing.T) {
+	fmt.Println(test.DB.GetLatestChangelogForObject("some_id_0"))
+}
+
+func TestChangelogsForObject(t *testing.T) {
+	fmt.Println(test.DB.GetChangelogsForObject("some_id_0"))
+}

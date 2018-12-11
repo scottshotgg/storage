@@ -9,17 +9,13 @@ import (
 	dstore "cloud.google.com/go/datastore"
 	"github.com/pizzahutdigital/datastore"
 	"github.com/pizzahutdigital/storage/object"
-	pb "github.com/pizzahutdigital/storage/protobufs"
 	"github.com/pizzahutdigital/storage/storage"
 	"google.golang.org/api/iterator"
 )
 
+// DB implements Storage from the storage package
 type DB struct {
 	Instance *datastore.DSInstance
-}
-
-type Iter struct {
-	I *dstore.Iterator
 }
 
 type ChangelogIter struct {
@@ -31,7 +27,8 @@ const (
 )
 
 var (
-	ErrTimeout = errors.New("Timeout")
+	ErrTimeout        = errors.New("Timeout")
+	ErrNotImplemented = errors.New("Not implemented")
 )
 
 func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
@@ -135,15 +132,41 @@ func (db *DB) GetMulti(ctx context.Context, ids ...string) (items []storage.Item
 	return items, nil
 }
 
+// Make the value have a "String()" attached to it
+func (db *DB) GetBy(key string, op string, value interface{}, limit int) (items []storage.Item, err error) {
+	var (
+		ctx   = context.Background()
+		query = db.Instance.NewQuery("something").Filter(key+op, value).Limit(limit)
+		iter  = db.Instance.Client().Run(ctx, query)
+	)
+
+	for {
+		var s dstore.PropertyList
+		// var s pb.Item
+		_, err = iter.Next(&s)
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			return nil, err
+		}
+
+		// items = append(items, object.FromProto(&s))
+		items = append(items, object.FromProps(s))
+	}
+
+	return items, nil
+}
+
 // TODO: could we just do interface here?
 func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) error {
 	ctx := context.Background()
-
-	// cl := storage.GenInsertChangelog(i)
-	// err := db.Instance.UpsertDocument(ctx, "changelog", cl.ID, cl)
-	// if err != nil {
-	// 	return err
-	// }
+	cl := storage.GenInsertChangelog(i)
+	err := db.Instance.UpsertDocument(ctx, "changelog", cl.ID, cl)
+	if err != nil {
+		return err
+	}
 
 	var (
 		key = dstore.Key{
@@ -168,18 +191,18 @@ func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) error {
 		}
 	)
 
-	for key, value := range sk {
-		if value == nil {
+	for k, v := range sk {
+		if v == nil {
 			continue
 		}
 
 		props = append(props, dstore.Property{
-			Name:  key,
-			Value: value,
+			Name:  k,
+			Value: v,
 		})
 	}
 
-	_, err := db.Instance.Client().Put(ctx, &key, &props)
+	_, err = db.Instance.Client().Put(ctx, &key, &props)
 	return err
 
 	// return db.Instance.UpsertDocument(ctx, "something", id, &pb.Item{
@@ -188,29 +211,10 @@ func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) error {
 	// })
 }
 
-// Make the value have a "string" attached to it
-func (db *DB) GetBy(key string, op string, value interface{}, limit int) (items []storage.Item, err error) {
-	var (
-		ctx   = context.Background()
-		query = db.Instance.NewQuery("something").Filter(key+op, value).Limit(limit)
-		iter  = db.Instance.Client().Run(ctx, query)
-	)
+func (db *DB) DeleteChangelogs(ids ...string) error {
+	ctx := context.Background()
 
-	for {
-		var props dstore.PropertyList
-		_, err = iter.Next(&props)
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-
-			return nil, err
-		}
-
-		items = append(items, object.FromProps(props))
-	}
-
-	return items, nil
+	return db.Instance.DeleteDocuments(ctx, "changelog", ids)
 }
 
 func (db *DB) Delete(id string) error {
@@ -237,17 +241,6 @@ func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
 	}, nil
 }
 
-func (i *Iter) Next() (storage.Item, error) {
-	var s pb.Item
-
-	_, err := i.I.Next(&s)
-	if err != nil {
-		return nil, err
-	}
-
-	return object.New(s.GetId(), s.GetValue()), nil
-}
-
 func (i *ChangelogIter) Next() (*storage.Changelog, error) {
 	var cl storage.Changelog
 
@@ -259,6 +252,50 @@ func (i *ChangelogIter) Next() (*storage.Changelog, error) {
 	return &cl, nil
 }
 
+func getLatest(cls []storage.Changelog) (*storage.Changelog, error) {
+	var latest storage.Changelog
+
+	for _, cl := range cls {
+		if cl.Timestamp > latest.Timestamp {
+			latest = cl
+		}
+	}
+
+	return &latest, nil
+}
+
 func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
-	return nil, errors.New("Not implemented")
+	return nil, ErrNotImplemented
+}
+
+func (db *DB) GetChangelogsForObject(id string) ([]storage.Changelog, error) {
+	var (
+		ctx   = context.Background()
+		query = db.Instance.NewQuery("changelog").Filter("ObjectID=", id)
+		// iter  = db.Instance.Client().Run(ctx, query)
+		cls []storage.Changelog
+	)
+
+	err := db.Instance.GetDocuments(ctx, query, &cls)
+	if err != nil {
+		return nil, err
+	}
+
+	// for {
+	// 	var s dstore.PropertyList
+	// 	// var s pb.Item
+	// 	_, err = iter.Next(&s)
+	// 	if err != nil {
+	// 		if err == iterator.Done {
+	// 			break
+	// 		}
+
+	// 		return nil, err
+	// 	}
+
+	// 	// items = append(items, object.FromProto(&s))
+	// 	items = append(items, object.FromProps(s))
+	// }
+
+	return cls, err
 }

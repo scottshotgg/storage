@@ -84,6 +84,7 @@ func TestSet(t *testing.T) {
 				<-test.WorkerChan
 			}()
 
+			fmt.Println("obj.Timestamp()", obj.Timestamp())
 			var err = test.DB.Set(obj.ID(), obj, map[string]interface{}{
 				"another": i % 10,
 			})
@@ -147,4 +148,13 @@ func TestIter(t *testing.T) {
 			t.Fatalf("err %+v", err)
 		}
 	}
+}
+
+func TestGetChangelogsForObject(t *testing.T) {
+	cls, err := test.DB.GetChangelogsForObject("some_id_0")
+	if err != nil {
+		t.Errorf("err %+v", err)
+	}
+
+	fmt.Println("cls", cls)
 }

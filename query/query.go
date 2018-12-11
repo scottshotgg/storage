@@ -77,16 +77,23 @@ func (o *Operation) Start() error {
 	return nil
 }
 
+// TODO: this is not fleshed out yet
 func (o *Operation) Run() error {
+	if o.err != nil {
+		return o.err
+	}
+
 	var err = o.Start()
 	if err != nil {
 		return err
 	}
 
-	futureChan := o.Future()
-	oueryDoneChan := o.Done()
-
-	doneChan := make(chan struct{})
+	var (
+		// TODO: might need to close these
+		futureChan    = o.Future()
+		oueryDoneChan = o.Done()
+		doneChan      = make(chan struct{})
+	)
 
 	go func() {
 		defer close(doneChan)
