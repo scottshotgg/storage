@@ -17,6 +17,7 @@ type Storage interface {
 	DeleteChangelogs(ids ...string) error
 
 	Iterator() (Iter, error)
+	IteratorBy(key, op string, value interface{}) (Iter, error)
 
 	ChangelogIterator() (ChangelogIter, error)
 	GetChangelogsForObject(id string) ([]Changelog, error)

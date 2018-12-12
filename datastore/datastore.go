@@ -37,6 +37,11 @@ func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 		err   = db.Instance.GetDocument(ctx, "something", id, &props)
 	)
 
+	// TODO: might need to do this
+	// if err != nil {
+	// 	return nil, err
+	// }
+
 	return object.FromProps(props), err
 }
 
@@ -132,8 +137,7 @@ func (db *DB) GetMulti(ctx context.Context, ids ...string) (items []storage.Item
 	return items, nil
 }
 
-// Make the value have a "String()" attached to it
-func (db *DB) GetBy(key string, op string, value interface{}, limit int) (items []storage.Item, err error) {
+func (db *DB) GetBy(key, op string, value interface{}, limit int) (items []storage.Item, err error) {
 	var (
 		ctx   = context.Background()
 		query = db.Instance.NewQuery("something").Filter(key+op, value).Limit(limit)
@@ -227,6 +231,27 @@ func (db *DB) Delete(id string) error {
 	}
 
 	return db.Instance.DeleteDocument(ctx, "something", id)
+}
+
+func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error) {
+	var query = db.Instance.NewQuery("something")
+
+	if len(key) != 0 {
+		if len(op) == 0 {
+			return nil, errors.New("Must provide an operator")
+		}
+
+		query = query.Filter(key+op, value)
+	}
+
+	// TODO: might need to do this
+	// if value == nil {
+	// 	return nil, errors.New("Must provide an operator")
+	// }
+
+	return &Iter{
+		I: db.Instance.Run(context.Background(), query),
+	}, nil
 }
 
 func (db *DB) Iterator() (storage.Iter, error) {

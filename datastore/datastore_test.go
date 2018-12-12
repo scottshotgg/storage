@@ -187,3 +187,33 @@ func TestGetChangelogsForObject(t *testing.T) {
 func TestChangelogsForObject(t *testing.T) {
 	fmt.Println(test.DB.GetChangelogsForObject("some_id_0"))
 }
+
+func TestIteratorBy(t *testing.T) {
+	iter, err := test.DB.IteratorBy("another", "=", 1)
+	if err != nil {
+		t.Fatalf("err %+v", err)
+	}
+
+	var (
+		item  storage.Item
+		testt test.Test
+	)
+
+	for {
+		item, err = iter.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			t.Fatalf("err %+v", err)
+		}
+
+		err = json.Unmarshal(item.Value(), &testt)
+		if err != nil {
+			t.Fatalf("err %+v", err)
+		}
+
+		fmt.Println("item", item)
+	}
+}

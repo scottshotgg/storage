@@ -58,7 +58,7 @@ func TestGet(t *testing.T) {
 				t.Fatalf("err %+v", err)
 			}
 
-			fmt.Println("item", item)
+			fmt.Println("item", item.ID(), item.Timestamp())
 
 			var testt test.Test
 			err = json.Unmarshal(item.Value(), &testt)

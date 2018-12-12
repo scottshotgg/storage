@@ -661,8 +661,8 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 	// Compare and find the latest changelog out of all the ones related to that ObjectID;
 	// we will delete the other later
 	var (
-		latest = getLatest(cls)
-		// refetchLatest bool
+		latest        = getLatest(cls)
+		refetchLatest bool
 	)
 
 	// If the master timestamp is greater than the slaves object timestamp then update
@@ -677,16 +677,15 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 		if err != nil {
 			return err
 		}
-	}
-	// else if item.Timestamp() > latest.Timestamp {
-	// 	// Update the slaves object
-	// 	err = master.Set(objectID, item, nil)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	} else if item.Timestamp() > latest.Timestamp {
+		// Update the slaves object
+		err = master.Set(objectID, item, nil)
+		if err != nil {
+			return err
+		}
 
-	// 	refetchLatest = true
-	// }
+		refetchLatest = true
+	}
 
 	// else {
 	// they are the same
@@ -694,21 +693,21 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 
 	// Delete all master timestamps from the master that were retrieved related to this object
 	// We processed this object so do this regardless of whether it was used to update
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-	var clIDs []string
-	for i := range cls {
-		clIDs = append(clIDs, cls[i].ID)
-	}
+		var clIDs []string
+		for i := range cls {
+			clIDs = append(clIDs, cls[i].ID)
+		}
 
-	err = master.DeleteChangelogs(clIDs...)
-	if err != nil {
-		// TODO: probably shouldn't return here
-		return err
-	}
-	// }()
+		err = master.DeleteChangelogs(clIDs...)
+		if err != nil {
+			// TODO: probably shouldn't return here
+			return
+		}
+	}()
 
 	// TODO: Might be able to somehow pipe all of this until the end
 	wg.Add(1)
@@ -721,9 +720,9 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 			return
 		}
 
-		// if refetchLatest {
-		// 	latest = getLatest(cls)
-		// }
+		if refetchLatest {
+			latest = getLatest(cls)
+		}
 
 		// Get only the changelogs older than the one we processed
 		cls = getOlder(cls, *latest)
@@ -740,8 +739,6 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 			return
 		}
 	}()
-
-	// wg.Wait()
 
 	return nil
 }
