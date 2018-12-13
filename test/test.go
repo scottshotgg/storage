@@ -27,7 +27,7 @@ type Test struct {
 }
 
 const (
-	AmountOfTests = 10000
+	AmountOfTests = 100000
 	WorkerLimit   = 1000
 )
 

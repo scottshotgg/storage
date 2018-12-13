@@ -260,113 +260,130 @@ func (db *DB) SetMulti(ctx context.Context, items []storage.Item) error {
 		wg      sync.WaitGroup
 		errChan = make(chan error, len(items))
 
-		clKeys  = make([]*dstore.Key, amount)
-		clProps = make([]dstore.PropertyList, amount)
+		clKeys  = make([]*dstore.Key, len(items))
+		clProps = make([]dstore.PropertyList, len(items))
 
-		keys  = make([]*dstore.Key, amount)
-		props = make([]dstore.PropertyList, amount)
+		keys  = make([]*dstore.Key, len(items))
+		props = make([]dstore.PropertyList, len(items))
+
+		// The amount of workers here made no difference past about 2.5% of the total length
+		workerChan = make(chan struct{}, len(items)/50)
 	)
 
-	for i, item := range items {
-		var (
-			cl    = storage.GenInsertChangelog(item)
-			index = i % amount
-		)
+	defer close(workerChan)
 
-		clKeys[index] = &dstore.Key{
-			Kind:      "changelog",
-			Name:      cl.ID,
-			Namespace: db.Instance.Namespace(),
+	for i := 0; i < len(items)/amount-1; i++ {
+		wg.Add(1)
+		workerChan <- struct{}{}
+
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+
+		default:
 		}
 
-		clProps[index] = dstore.PropertyList{
-			dstore.Property{
-				Name:  "ID",
-				Value: cl.ID,
-			},
-			dstore.Property{
-				Name:  "ObjectID",
-				Value: cl.ObjectID,
-			},
-			dstore.Property{
-				Name:  "Timestamp",
-				Value: cl.Timestamp,
-			},
-			dstore.Property{
-				Name:  "Type",
-				Value: cl.Type,
-			},
-		}
+		go func(start, end int) {
+			defer func() {
+				wg.Done()
+				<-workerChan
+			}()
 
-		keys[index] = &dstore.Key{
-			Kind:      "something",
-			Name:      item.ID(),
-			Namespace: db.Instance.Namespace(),
-		}
+			for j := start; j < end; j++ {
+				select {
+				case <-ctx.Done():
+					return
 
-		props[index] = dstore.PropertyList{
-			dstore.Property{
-				Name:  "id",
-				Value: item.ID(),
-			},
-			dstore.Property{
-				Name:  "timestamp",
-				Value: item.Timestamp(),
-			},
-			dstore.Property{
-				Name:  "value",
-				Value: item.Value(),
-			},
-		}
+				default:
+				}
 
-		for k, v := range item.Keys() {
-			if v == nil {
-				continue
+				var (
+					item = items[j]
+					cl   = storage.GenInsertChangelog(item)
+				)
+
+				clKeys[j] = &dstore.Key{
+					Kind: "changelog",
+					Name: cl.ID,
+					// Namespace: db.Instance.Namespace(),
+				}
+
+				clProps[j] = dstore.PropertyList{
+					dstore.Property{
+						Name:  "ID",
+						Value: cl.ID,
+					},
+					dstore.Property{
+						Name:  "ObjectID",
+						Value: cl.ObjectID,
+					},
+					dstore.Property{
+						Name:  "Timestamp",
+						Value: cl.Timestamp,
+					},
+					dstore.Property{
+						Name:  "Type",
+						Value: cl.Type,
+					},
+				}
+
+				keys[j] = &dstore.Key{
+					Kind: "something",
+					Name: item.ID(),
+					// Namespace: db.Instance.Namespace(),
+				}
+
+				props[j] = dstore.PropertyList{
+					dstore.Property{
+						Name:  "id",
+						Value: item.ID(),
+					},
+					dstore.Property{
+						Name:  "timestamp",
+						Value: item.Timestamp(),
+					},
+					dstore.Property{
+						Name:  "value",
+						Value: item.Value(),
+					},
+				}
+
+				for k, v := range item.Keys() {
+					if v == nil {
+						continue
+					}
+
+					props[j] = append(props[j], dstore.Property{
+						Name:  k,
+						Value: v,
+					})
+				}
 			}
 
-			props[index] = append(props[index], dstore.Property{
-				Name:  k,
-				Value: v,
-			})
-		}
+			var t, err = db.Instance.Client().NewTransaction(ctx)
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-		// If we are at the len-1 index in the array
-		if index == amountM1 {
-			wg.Add(1)
-			go func(keys []*dstore.Key, props []dstore.PropertyList, clKeys []*dstore.Key, clProps []dstore.PropertyList) {
-				defer wg.Done()
+			_, err = t.PutMulti(keys[start:end], props[start:end])
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-				var t, err = db.Instance.Client().NewTransaction(ctx)
-				if err != nil {
-					errChan <- err
-					return
-				}
+			_, err = t.PutMulti(clKeys[start:end], clProps[start:end])
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-				_, err = t.PutMulti(keys, props)
-				if err != nil {
-					errChan <- err
-					return
-				}
-
-				_, err = t.PutMulti(clKeys, clProps)
-				if err != nil {
-					errChan <- err
-					return
-				}
-
-				_, err = t.Commit()
-				if err != nil {
-					errChan <- err
-					return
-				}
-			}(keys, props, clKeys, clProps)
-
-			clKeys = make([]*dstore.Key, amount)
-			clProps = make([]dstore.PropertyList, amount)
-
-			keys = make([]*dstore.Key, amount)
-			props = make([]dstore.PropertyList, amount)
-		}
+			_, err = t.Commit()
+			if err != nil {
+				errChan <- err
+				return
+			}
+		}(i*amount, (i+1)*amount)
 	}
 
 	wg.Wait()
