@@ -160,7 +160,7 @@ func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 	}
 }
 
-func (s *Store) Set(id string, i storage.Item, sk map[string]interface{}) error {
+func (s *Store) Set(ctx context.Context, i storage.Item) error {
 	var (
 		wg        sync.WaitGroup
 		errChan   = make(chan error, len(s.Stores))
@@ -177,7 +177,7 @@ func (s *Store) Set(id string, i storage.Item, sk map[string]interface{}) error 
 
 			select {
 			// If you can't write the channel then just move on
-			case errChan <- store.Set(id, i, nil):
+			case errChan <- store.Set(ctx, i):
 
 				// TODO: use an error here and lock/append to a slice
 				//default:
@@ -544,9 +544,9 @@ Basic logic for sync:
 // 	return nil
 // }
 
-func (s *Store) Sync3() error {
+func (s *Store) Audit() error {
 	// Copy the stores incase one is added later on
-	storesCopy := s.Stores[0:len(s.Stores)]
+	var storesCopy = s.Stores[0:len(s.Stores)]
 
 	// Iterate over all of the stores
 	for i := 0; i < len(storesCopy)*len(storesCopy); i++ {
@@ -559,7 +559,7 @@ func (s *Store) Sync3() error {
 		// Range over all "slaves" of that master storage
 		for _, slave := range storesCopy[1:] {
 			// Iterate over all the changelogs
-			clIter, err := master.ChangelogIterator()
+			var clIter, err = master.ChangelogIterator()
 			if err != nil {
 				return err
 			}
@@ -599,12 +599,14 @@ func (s *Store) Sync3() error {
 						wg.Done()
 					}()
 
-					err := processChangelogs(&wg, cl.ObjectID, master, slave)
+					var err = processChangelogs(&wg, cl.ObjectID, master, slave)
 					if err != nil {
 						// log
 					}
 				}()
 			}
+
+			fmt.Println("i am here waiting")
 
 			wg.Wait()
 		}
@@ -665,21 +667,23 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 		refetchLatest bool
 	)
 
+	var ctx = context.Background()
+
 	// If the master timestamp is greater than the slaves object timestamp then update
 	if item.Timestamp() < latest.Timestamp {
-		item, err = master.Get(context.Background(), objectID)
+		item, err = master.Get(ctx, objectID)
 		if err != nil {
 			return err
 		}
 
 		// Update the slaves object
-		err = slave.Set(objectID, item, nil)
+		err = slave.Set(ctx, item)
 		if err != nil {
 			return err
 		}
 	} else if item.Timestamp() > latest.Timestamp {
 		// Update the slaves object
-		err = master.Set(objectID, item, nil)
+		err = master.Set(ctx, item)
 		if err != nil {
 			return err
 		}

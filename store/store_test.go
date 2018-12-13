@@ -108,9 +108,16 @@ func TestGet(t *testing.T) {
 // 	}
 // }
 
-func TestSync3(t *testing.T) {
-	err := s.Sync3()
+func TestAudit(t *testing.T) {
+	err := s.Audit()
 	if err != nil {
 		t.Errorf("%+v", err)
 	}
 }
+
+// func TestSync(t *testing.T) {
+// 	err := s.Sync()
+// 	if err != nil {
+// 		t.Errorf("%+v", err)
+// 	}
+// }

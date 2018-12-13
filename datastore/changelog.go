@@ -75,3 +75,7 @@ func (db *DB) GetChangelogsForObject(id string) ([]storage.Changelog, error) {
 
 	return cls, err
 }
+
+func (db *DB) DeleteChangelogs(ids ...string) error {
+	return db.Instance.DeleteDocuments(context.Background(), "changelog", ids)
+}

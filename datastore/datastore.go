@@ -24,8 +24,9 @@ const (
 )
 
 var (
-	ErrTimeout        = errors.New("Timeout")
-	ErrNotImplemented = errors.New("Not implemented")
+	ErrTimeout                   = errors.New("Timeout")
+	ErrNotImplemented            = errors.New("Not implemented")
+	ErrTransactionAmountExceeded = errors.New("Only 12 items can be batched; this is a Google Datastore limit")
 )
 
 func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
@@ -238,18 +239,6 @@ func (db *DB) Set(ctx context.Context, i storage.Item) error {
 	// })
 }
 
-// func buildArray() {}
-
-func drainErrs(errChan chan error) (merr *multierror.Error) {
-	close(errChan)
-
-	for err := range errChan {
-		merr = multierror.Append(merr, err)
-	}
-
-	return merr
-}
-
 func (db *DB) SetMulti(ctx context.Context, items []storage.Item) error {
 	const (
 		amount   = 12
@@ -257,25 +246,43 @@ func (db *DB) SetMulti(ctx context.Context, items []storage.Item) error {
 	)
 
 	var (
-		wg      sync.WaitGroup
-		errChan = make(chan error, len(items))
+		wg sync.WaitGroup
 
-		clKeys  = make([]*dstore.Key, len(items))
-		clProps = make([]dstore.PropertyList, len(items))
+		// The amount of workers here made no difference past about 10% of the total length
+		// Adding 1 so that there is atleast 1 worker in the case that the calculation resolves to 0
+		workerChan = make(chan struct{}, int64(float64(len(items))*.25)+1)
+		errChan    = make(chan error, len(items))
 
-		keys  = make([]*dstore.Key, len(items))
-		props = make([]dstore.PropertyList, len(items))
-
-		// The amount of workers here made no difference past about 2.5% of the total length
-		workerChan = make(chan struct{}, len(items)/50)
+		leftover = len(items) % amountM1
 	)
 
+	if leftover != 0 {
+		// Spawn a batch to take care of the leftover
+		go func() {
+			var (
+				start = len(items) - leftover
+				end   = len(items)
+				err   = db.BatchTransaction(ctx, items[start:end])
+			)
+
+			if err != nil {
+				errChan <- err
+			}
+
+			<-workerChan
+			wg.Done()
+		}()
+	}
+
+	// Close the workerChan at the end
 	defer close(workerChan)
 
-	for i := 0; i < len(items)/amount-1; i++ {
+	// Since each goroutine takes `amount` objects, at max we need the len(objects) / `amount-1`
+	for i := 0; i < len(items)/amount; i++ {
 		wg.Add(1)
 		workerChan <- struct{}{}
 
+		// Check the context before launching the goroutine
 		select {
 		case <-ctx.Done():
 			return context.Canceled
@@ -283,116 +290,30 @@ func (db *DB) SetMulti(ctx context.Context, items []storage.Item) error {
 		default:
 		}
 
-		go func(start, end int) {
-			defer func() {
-				wg.Done()
-				<-workerChan
-			}()
+		// Batch each set of `amount` to be processed by a separate goroutine
+		// Do NOT change this to use a channel; the memory usage will potentially be more efficient
+		// but you will incur a severe performance pentalty for locking and unlocking at each read/write of the channel
+		go func(i int) {
+			var (
+				start = i * amount
+				end   = (i + 1) * amount
+				err   = db.BatchTransaction(ctx, items[start:end])
+			)
 
-			for j := start; j < end; j++ {
-				select {
-				case <-ctx.Done():
-					return
-
-				default:
-				}
-
-				var (
-					item = items[j]
-					cl   = storage.GenInsertChangelog(item)
-				)
-
-				clKeys[j] = &dstore.Key{
-					Kind: "changelog",
-					Name: cl.ID,
-					// Namespace: db.Instance.Namespace(),
-				}
-
-				clProps[j] = dstore.PropertyList{
-					dstore.Property{
-						Name:  "ID",
-						Value: cl.ID,
-					},
-					dstore.Property{
-						Name:  "ObjectID",
-						Value: cl.ObjectID,
-					},
-					dstore.Property{
-						Name:  "Timestamp",
-						Value: cl.Timestamp,
-					},
-					dstore.Property{
-						Name:  "Type",
-						Value: cl.Type,
-					},
-				}
-
-				keys[j] = &dstore.Key{
-					Kind: "something",
-					Name: item.ID(),
-					// Namespace: db.Instance.Namespace(),
-				}
-
-				props[j] = dstore.PropertyList{
-					dstore.Property{
-						Name:  "id",
-						Value: item.ID(),
-					},
-					dstore.Property{
-						Name:  "timestamp",
-						Value: item.Timestamp(),
-					},
-					dstore.Property{
-						Name:  "value",
-						Value: item.Value(),
-					},
-				}
-
-				for k, v := range item.Keys() {
-					if v == nil {
-						continue
-					}
-
-					props[j] = append(props[j], dstore.Property{
-						Name:  k,
-						Value: v,
-					})
-				}
-			}
-
-			var t, err = db.Instance.Client().NewTransaction(ctx)
 			if err != nil {
 				errChan <- err
-				return
 			}
 
-			_, err = t.PutMulti(keys[start:end], props[start:end])
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			_, err = t.PutMulti(clKeys[start:end], clProps[start:end])
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			_, err = t.Commit()
-			if err != nil {
-				errChan <- err
-				return
-			}
-		}(i*amount, (i+1)*amount)
+			<-workerChan
+			wg.Done()
+		}(i)
 	}
 
+	// Wait for all transactions to finish
 	wg.Wait()
 
+	// If there were any errors then return that
 	return drainErrs(errChan).ErrorOrNil()
-}
-
-func (db *DB) DeleteChangelogs(ids ...string) error {
-	return db.Instance.DeleteDocuments(context.Background(), "changelog", ids)
 }
 
 func (db *DB) Delete(id string) error {
@@ -407,4 +328,127 @@ func (db *DB) Delete(id string) error {
 	}
 
 	return db.Instance.DeleteDocument(ctx, "something", id)
+}
+
+func drainErrs(errChan chan error) (merr *multierror.Error) {
+	close(errChan)
+
+	for err := range errChan {
+		merr = multierror.Append(merr, err)
+	}
+
+	return merr
+}
+
+// Batch transaction takes up to 12 items and generates changelogs, throws them all into a transaction and commits it
+func (db *DB) BatchTransaction(ctx context.Context, items []storage.Item) error {
+	if len(items) > 12 {
+		return ErrTransactionAmountExceeded
+	}
+
+	var (
+		clKeys  = make([]*dstore.Key, len(items))
+		clProps = make([]dstore.PropertyList, len(items))
+
+		keys  = make([]*dstore.Key, len(items))
+		props = make([]dstore.PropertyList, len(items))
+	)
+
+	// TODO: put this in a function
+	// Loop over the defined start and end
+	for j, item := range items {
+		// Check the context while we are looping inside the goroutine
+		select {
+		case <-ctx.Done():
+			return context.Canceled
+
+		default:
+		}
+
+		// Generate a new changelog for the upsert
+		var cl = storage.GenInsertChangelog(item)
+
+		// Create the changelog key
+		clKeys[j] = genChangelogKey(cl)
+
+		// Create the changelog props
+		clProps[j] = genChangelogProps(cl)
+
+		// Create the object key
+		keys[j] = genItemKey(item)
+
+		// Create the object props
+		props[j] = genItemProps(item)
+	}
+
+	// Create a new transaction from the client
+	var t, err = db.Instance.Client().NewTransaction(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Put the object keys and props into the transaction
+	_, err = t.PutMulti(keys, props)
+	if err != nil {
+		return err
+	}
+
+	// Put the changelog keys and props into the transaction
+	_, err = t.PutMulti(clKeys, clProps)
+	if err != nil {
+		return err
+	}
+
+	// Commit our changes; this is where operations ACTUALLY take place
+	// The ignored keys are essentially promises that can be resolved, similar to using Mongo through Node
+	// But we don't care about resolving them
+	_, err = t.Commit()
+
+	return err
+}
+
+// genChangelogKey generates a Datastore name based key for a changelog
+func genChangelogKey(cl *storage.Changelog) *dstore.Key {
+	return dstore.NameKey("changelog", cl.ID, nil)
+}
+
+// genItemProps takes a changelog and formats it into a PropertyList for Datastore
+func genChangelogProps(cl *storage.Changelog) dstore.PropertyList {
+	return dstore.PropertyList{
+		propFromKV("ID", cl.ID),
+		propFromKV("ObjectID", cl.ObjectID),
+		propFromKV("Timestamp", cl.Timestamp),
+		propFromKV("Type", cl.Type),
+	}
+}
+
+// getItemKey generates a Datastore name based key for an item
+func genItemKey(item storage.Item) *dstore.Key {
+	return dstore.NameKey("something", item.ID(), nil)
+}
+
+// genItemProps takes an item and formats it into a PropertyList for Datastore
+func genItemProps(item storage.Item) dstore.PropertyList {
+	var props = dstore.PropertyList{
+		propFromKV("id", item.ID()),
+		propFromKV("timestamp", item.Timestamp()),
+		propFromKV("value", item.Value()),
+	}
+
+	// If any keys came along with the object then insert those into the props as well
+	for k, v := range item.Keys() {
+		// if v != nil {
+		props = append(props, propFromKV(k, v))
+		// }
+	}
+
+	return props
+}
+
+// propFromKV takes a key-value pair and returns a Datastore Property
+func propFromKV(key string, value interface{}) dstore.Property {
+	return dstore.Property{
+		Name:  key,
+		Value: value,
+	}
 }

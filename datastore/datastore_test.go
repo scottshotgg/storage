@@ -17,17 +17,20 @@ import (
 )
 
 func init() {
-	db := datastore.DB{
-		Instance: &dstore.DSInstance{},
-	}
+	var (
+		db = datastore.DB{
+			Instance: &dstore.DSInstance{},
+		}
 
-	// initialize Datastore client session for mythor metadata
-	err := db.Instance.Initialize(dstore.DSConfig{
-		Context:            context.Background(),
-		ServiceAccountFile: "/Users/sgg7269/Documents/serviceAccountFiles/ds-serviceaccount.json",
-		ProjectID:          "phdigidev",
-		Namespace:          "storage_test",
-	})
+		// initialize Datastore client session for mythor metadata
+		err = db.Instance.Initialize(dstore.DSConfig{
+			Context:            context.Background(),
+			ServiceAccountFile: "/Users/sgg7269/Documents/serviceAccountFiles/ds-serviceaccount.json",
+			ProjectID:          "phdigidev",
+			Namespace:          "storage_test",
+		})
+	)
+
 	if err != nil {
 		log.Fatalf("err %+v", err)
 	}

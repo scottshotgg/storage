@@ -67,10 +67,13 @@ func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	return o, o.UnmarshalBinary([]byte(value))
 }
 
-func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) (err error) {
-	for key, value := range sk {
-		fmt.Println("sk", key, value)
-		_, err = db.Instance.SAdd("::something::"+key, id+"::"+fmt.Sprintf("%v", value)).Result()
+func (db *DB) GetAll(ctx context.Context) ([]storage.Item, error) {
+	return nil, nil
+}
+
+func (db *DB) Set(ctx context.Context, i storage.Item) (err error) {
+	for key, value := range i.Keys() {
+		_, err = db.Instance.SAdd("::something::"+key, i.ID()+"::"+fmt.Sprintf("%v", value)).Result()
 		// _, err = db.Instance.HSet("::something::"+key, id+"::"+fmt.Sprintf("%v", value), value).Result()
 		if err != nil {
 			fmt.Println("err", err)
@@ -85,8 +88,16 @@ func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) (err err
 	}
 
 	i.(*object.Object).SetTimestamp(changelog.Timestamp)
-	_, err = db.Instance.HSet("something", id, i).Result()
+	_, err = db.Instance.HSet("something", i.ID(), i).Result()
 	return err
+}
+
+func (db *DB) SetMulti(ctx context.Context, items []storage.Item) error {
+	return nil
+}
+
+func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error) {
+	return nil, nil
 }
 
 func (db *DB) GetMulti(_ context.Context, ids ...string) ([]storage.Item, error) {
@@ -114,7 +125,7 @@ func (db *DB) GetMulti(_ context.Context, ids ...string) ([]storage.Item, error)
 	return items, nil
 }
 
-func (db *DB) GetBy(key string, op string, value interface{}, limit int) ([]storage.Item, error) {
+func (db *DB) GetBy(ctx context.Context, key string, op string, value interface{}, limit int) ([]storage.Item, error) {
 	amount, err := db.Instance.SCard("::something::" + key).Result()
 	if err != nil {
 		return nil, err
