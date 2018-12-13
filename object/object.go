@@ -11,15 +11,17 @@ import (
 type Object struct {
 	id        string
 	value     []byte
-	disable   bool
 	timestamp int64
+	keys      map[string]interface{}
+	// disable   bool
 }
 
-func New(id string, value []byte) *Object {
+func New(id string, value []byte, keys map[string]interface{}) *Object {
 	return &Object{
 		id:        id,
 		value:     value,
 		timestamp: storage.GenTimestamp(),
+		keys:      keys,
 	}
 }
 
@@ -28,6 +30,7 @@ func FromProto(i *pb.Item) *Object {
 		id:        i.GetId(),
 		value:     i.GetValue(),
 		timestamp: i.GetTimestamp(),
+		// keys: i.GetKeys(),
 	}
 }
 
@@ -36,6 +39,7 @@ func FromResult(res *storage.Result) *Object {
 		id:        res.Item.ID(),
 		value:     res.Item.Value(),
 		timestamp: res.Item.Timestamp(),
+		// keys:      res.Item.Keys(),
 	}
 }
 
@@ -47,6 +51,23 @@ func FromProps(props dstore.PropertyList) *Object {
 	var propMap = map[string]interface{}{}
 	for _, prop := range props {
 		propMap[prop.Name] = prop.Value
+	}
+
+	var (
+		id    = propMap["id"].(string)
+		value = propMap["value"].([]byte)
+		ts    = propMap["timestamp"].(int64)
+	)
+
+	delete(propMap, "id")
+	delete(propMap, "value")
+	delete(propMap, "timestamp")
+
+	return &Object{
+		id:        id,
+		value:     value,
+		timestamp: ts,
+		keys:      propMap,
 	}
 
 	// var (
@@ -95,12 +116,6 @@ func FromProps(props dstore.PropertyList) *Object {
 	// 	value:     value,
 	// 	timestamp: timestamp,
 	// }
-
-	return &Object{
-		id:        propMap["id"].(string),
-		value:     propMap["value"].([]byte),
-		timestamp: propMap["timestamp"].(int64),
-	}
 }
 
 func (o *Object) SetTimestamp(ts int64) {
@@ -119,12 +134,17 @@ func (o *Object) Timestamp() int64 {
 	return o.timestamp
 }
 
+func (o *Object) Keys() map[string]interface{} {
+	return o.keys
+}
+
 // MarshalBinary implements encoding.BinaryMarshaler
 func (o *Object) MarshalBinary() (data []byte, err error) {
 	return proto.Marshal(&pb.Item{
 		Id:        o.ID(),
 		Value:     o.Value(),
 		Timestamp: o.Timestamp(),
+		// Keys: // HOW TO DO THIS
 	})
 }
 
@@ -140,6 +160,7 @@ func (o *Object) UnmarshalBinary(data []byte) error {
 	o.id = s.GetId()
 	o.value = s.GetValue()
 	o.timestamp = s.GetTimestamp()
+	// o.keys = s.GetKeys()
 
 	return nil
 }

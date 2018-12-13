@@ -7,6 +7,7 @@ import (
 	"time"
 
 	dstore "cloud.google.com/go/datastore"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pizzahutdigital/datastore"
 	"github.com/pizzahutdigital/storage/object"
 	"github.com/pizzahutdigital/storage/storage"
@@ -16,10 +17,6 @@ import (
 // DB implements Storage from the storage package
 type DB struct {
 	Instance *datastore.DSInstance
-}
-
-type ChangelogIter struct {
-	I *dstore.Iterator
 }
 
 const (
@@ -102,6 +99,31 @@ func (db *DB) GetAsync(ctx context.Context, id string, timeout time.Duration) <-
 	return resChan
 }
 
+func (db *DB) GetBy(ctx context.Context, key, op string, value interface{}, limit int) (items []storage.Item, err error) {
+	var (
+		query = db.Instance.NewQuery("something").Filter(key+op, value).Limit(limit)
+		iter  = db.Instance.Client().Run(ctx, query)
+	)
+
+	for {
+		var s dstore.PropertyList
+		// var s pb.Item
+		_, err = iter.Next(&s)
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			return nil, err
+		}
+
+		// items = append(items, object.FromProto(&s))
+		items = append(items, object.FromProps(s))
+	}
+
+	return items, nil
+}
+
 func (db *DB) GetMulti(ctx context.Context, ids ...string) (items []storage.Item, err error) {
 	var (
 		itemChan = make(chan storage.Item, len(ids))
@@ -137,12 +159,8 @@ func (db *DB) GetMulti(ctx context.Context, ids ...string) (items []storage.Item
 	return items, nil
 }
 
-func (db *DB) GetBy(key, op string, value interface{}, limit int) (items []storage.Item, err error) {
-	var (
-		ctx   = context.Background()
-		query = db.Instance.NewQuery("something").Filter(key+op, value).Limit(limit)
-		iter  = db.Instance.Client().Run(ctx, query)
-	)
+func (db *DB) GetAll(ctx context.Context) (items []storage.Item, err error) {
+	var iter = db.Instance.Client().Run(ctx, db.Instance.NewQuery("something"))
 
 	for {
 		var s dstore.PropertyList
@@ -153,7 +171,7 @@ func (db *DB) GetBy(key, op string, value interface{}, limit int) (items []stora
 				break
 			}
 
-			return nil, err
+			return items, err
 		}
 
 		// items = append(items, object.FromProto(&s))
@@ -164,10 +182,15 @@ func (db *DB) GetBy(key, op string, value interface{}, limit int) (items []stora
 }
 
 // TODO: could we just do interface here?
-func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) error {
-	ctx := context.Background()
-	cl := storage.GenInsertChangelog(i)
-	err := db.Instance.UpsertDocument(ctx, "changelog", cl.ID, cl)
+func (db *DB) Set(ctx context.Context, i storage.Item) error {
+	var (
+		cl  = storage.GenInsertChangelog(i)
+		err = db.Instance.UpsertDocument(ctx, "changelog", cl.ID, cl)
+	)
+
+	// Could make a generic interface and then reflect over the keys at runtime and use
+	// those as indexes
+
 	if err != nil {
 		return err
 	}
@@ -195,7 +218,7 @@ func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) error {
 		}
 	)
 
-	for k, v := range sk {
+	for k, v := range i.Keys() {
 		if v == nil {
 			continue
 		}
@@ -215,112 +238,156 @@ func (db *DB) Set(id string, i storage.Item, sk map[string]interface{}) error {
 	// })
 }
 
-func (db *DB) DeleteChangelogs(ids ...string) error {
-	ctx := context.Background()
+// func buildArray() {}
 
-	return db.Instance.DeleteDocuments(ctx, "changelog", ids)
+func drainErrs(errChan chan error) (merr *multierror.Error) {
+	close(errChan)
+
+	for err := range errChan {
+		merr = multierror.Append(merr, err)
+	}
+
+	return merr
+}
+
+func (db *DB) SetMulti(ctx context.Context, items []storage.Item) error {
+	const (
+		amount   = 12
+		amountM1 = amount - 1
+	)
+
+	var (
+		wg      sync.WaitGroup
+		errChan = make(chan error, len(items))
+
+		clKeys  = make([]*dstore.Key, amount)
+		clProps = make([]dstore.PropertyList, amount)
+
+		keys  = make([]*dstore.Key, amount)
+		props = make([]dstore.PropertyList, amount)
+	)
+
+	for i, item := range items {
+		var (
+			cl    = storage.GenInsertChangelog(item)
+			index = i % amount
+		)
+
+		clKeys[index] = &dstore.Key{
+			Kind:      "changelog",
+			Name:      cl.ID,
+			Namespace: db.Instance.Namespace(),
+		}
+
+		clProps[index] = dstore.PropertyList{
+			dstore.Property{
+				Name:  "ID",
+				Value: cl.ID,
+			},
+			dstore.Property{
+				Name:  "ObjectID",
+				Value: cl.ObjectID,
+			},
+			dstore.Property{
+				Name:  "Timestamp",
+				Value: cl.Timestamp,
+			},
+			dstore.Property{
+				Name:  "Type",
+				Value: cl.Type,
+			},
+		}
+
+		keys[index] = &dstore.Key{
+			Kind:      "something",
+			Name:      item.ID(),
+			Namespace: db.Instance.Namespace(),
+		}
+
+		props[index] = dstore.PropertyList{
+			dstore.Property{
+				Name:  "id",
+				Value: item.ID(),
+			},
+			dstore.Property{
+				Name:  "timestamp",
+				Value: item.Timestamp(),
+			},
+			dstore.Property{
+				Name:  "value",
+				Value: item.Value(),
+			},
+		}
+
+		for k, v := range item.Keys() {
+			if v == nil {
+				continue
+			}
+
+			props[index] = append(props[index], dstore.Property{
+				Name:  k,
+				Value: v,
+			})
+		}
+
+		// If we are at the len-1 index in the array
+		if index == amountM1 {
+			wg.Add(1)
+			go func(keys []*dstore.Key, props []dstore.PropertyList, clKeys []*dstore.Key, clProps []dstore.PropertyList) {
+				defer wg.Done()
+
+				var t, err = db.Instance.Client().NewTransaction(ctx)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				_, err = t.PutMulti(keys, props)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				_, err = t.PutMulti(clKeys, clProps)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				_, err = t.Commit()
+				if err != nil {
+					errChan <- err
+					return
+				}
+			}(keys, props, clKeys, clProps)
+
+			clKeys = make([]*dstore.Key, amount)
+			clProps = make([]dstore.PropertyList, amount)
+
+			keys = make([]*dstore.Key, amount)
+			props = make([]dstore.PropertyList, amount)
+		}
+	}
+
+	wg.Wait()
+
+	return drainErrs(errChan).ErrorOrNil()
+}
+
+func (db *DB) DeleteChangelogs(ids ...string) error {
+	return db.Instance.DeleteDocuments(context.Background(), "changelog", ids)
 }
 
 func (db *DB) Delete(id string) error {
-	ctx := context.Background()
+	var (
+		ctx = context.Background()
+		cl  = storage.GenDeleteChangelog(id)
+		err = db.Instance.UpsertDocument(ctx, "changelog", cl.ID, cl)
+	)
 
-	cl := storage.GenDeleteChangelog(id)
-	err := db.Instance.UpsertDocument(ctx, "changelog", cl.ID, cl)
 	if err != nil {
 		return err
 	}
 
 	return db.Instance.DeleteDocument(ctx, "something", id)
-}
-
-func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error) {
-	var query = db.Instance.NewQuery("something")
-
-	if len(key) != 0 {
-		if len(op) == 0 {
-			return nil, errors.New("Must provide an operator")
-		}
-
-		query = query.Filter(key+op, value)
-	}
-
-	// TODO: might need to do this
-	// if value == nil {
-	// 	return nil, errors.New("Must provide an operator")
-	// }
-
-	return &Iter{
-		I: db.Instance.Run(context.Background(), query),
-	}, nil
-}
-
-func (db *DB) Iterator() (storage.Iter, error) {
-	return &Iter{
-		I: db.Instance.Run(context.Background(), db.Instance.NewQuery("something")),
-	}, nil
-}
-
-func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
-	return &ChangelogIter{
-		I: db.Instance.Run(context.Background(), db.Instance.NewQuery("changelog")),
-	}, nil
-}
-
-func (i *ChangelogIter) Next() (*storage.Changelog, error) {
-	var cl storage.Changelog
-
-	_, err := i.I.Next(&cl)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cl, nil
-}
-
-func getLatest(cls []storage.Changelog) (*storage.Changelog, error) {
-	var latest storage.Changelog
-
-	for _, cl := range cls {
-		if cl.Timestamp > latest.Timestamp {
-			latest = cl
-		}
-	}
-
-	return &latest, nil
-}
-
-func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
-	return nil, ErrNotImplemented
-}
-
-func (db *DB) GetChangelogsForObject(id string) ([]storage.Changelog, error) {
-	var (
-		ctx   = context.Background()
-		query = db.Instance.NewQuery("changelog").Filter("ObjectID=", id)
-		// iter  = db.Instance.Client().Run(ctx, query)
-		cls []storage.Changelog
-	)
-
-	err := db.Instance.GetDocuments(ctx, query, &cls)
-	if err != nil {
-		return nil, err
-	}
-
-	// for {
-	// 	var s dstore.PropertyList
-	// 	// var s pb.Item
-	// 	_, err = iter.Next(&s)
-	// 	if err != nil {
-	// 		if err == iterator.Done {
-	// 			break
-	// 		}
-
-	// 		return nil, err
-	// 	}
-
-	// 	// items = append(items, object.FromProto(&s))
-	// 	items = append(items, object.FromProps(s))
-	// }
-
-	return cls, err
 }

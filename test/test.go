@@ -27,7 +27,7 @@ type Test struct {
 }
 
 const (
-	AmountOfTests = 100
+	AmountOfTests = 10000
 	WorkerLimit   = 1000
 )
 
@@ -59,6 +59,8 @@ func init() {
 		}
 
 		// Create an object (item) to put in the database
-		Objs = append(Objs, object.New(fmt.Sprintf("some_id_%d", i), bytes))
+		Objs = append(Objs, object.New(fmt.Sprintf("some_id_%d", i), bytes, map[string]interface{}{
+			"another": i % 10,
+		}))
 	}
 }

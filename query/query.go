@@ -1,4 +1,4 @@
-package ouery
+package query
 
 import (
 	"context"
@@ -12,7 +12,7 @@ type Operation struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 
-	oueryFuncs []func()
+	queryFuncs []OpFunc
 
 	results *[]storage.Item
 	err     error
@@ -20,125 +20,141 @@ type Operation struct {
 	timeout time.Duration
 	async   bool
 
-	stage int
-
-	// TODO: do something with this; need to check these
-	// started bool
-	// finished bool
+	// Status
+	stage   int
+	running bool
 
 	// TODO: should prob put a mutex here that is checked
 }
 
-type OpFunc func()
+// TODO: Switch these to be private later
+type Value struct {
+	Name   string
+	TypeOf string
+	Value  interface{}
+}
+
+type Values map[string]Value
+
+type OpFunc func(o *Operation, v Values) (Values, error)
 
 var (
 	ErrEmptyCancelFunc    = errors.New("Attempted to set cancel func to nil value")
 	ErrEmptyOutput        = errors.New("Attempted to set output to nil value")
 	ErrEmptyContext       = errors.New("Attempted to use nil context")
-	ErrEmptyOperationFunc = errors.New("Attempted to set ouery func to nil value")
+	ErrEmptyOperationFunc = errors.New("Attempted to set query func to nil value")
 
 	ErrNilResults = errors.New("Nil results")
 )
 
-func New(of OpFunc) *Operation {
-	ctx, cancelFunc := context.WithCancel(context.Background())
+func New() *Operation {
+	var ctx, cancelFunc = context.WithCancel(context.Background())
 
 	return &Operation{
 		ctx:        ctx,
 		cancelFunc: cancelFunc,
-		oueryFuncs: []func(){of},
+		queryFuncs: []OpFunc{},
 		results:    &[]storage.Item{},
 		// future:     make(chan struct{}),
 	}
 }
 
+func Raw() *Operation {
+	return &Operation{}
+}
+
 func (o *Operation) Start() error {
+	// If the operations have already produced an error then don't start
 	if o.err != nil {
 		return o.err
+	}
+
+	// If there aren't any query functions to be run then return an error
+	if o.queryFuncs == nil {
+		return errors.New("No query functions set")
 	}
 
 	// start an err chan?
 	// start the streaming chans?
 
-	go func() {
-		for i := range o.oueryFuncs {
-			o.oueryFuncs[i]()
+	// Set the started flag
+	o.running = true
 
-			// If the last ouery triggered an error then stop the process
+	go func() {
+		defer func() {
+			o.running = false
+			o.Cancel()
+		}()
+
+		for i, op := range o.queryFuncs {
+			if op == nil {
+				// log
+				break
+			}
+
+			// This is the stage it errored on
+			o.stage = i
+
+			// Run the query operation
+			_, o.err = op(o, nil)
 			if o.err != nil {
-				o.Cancel()
-				o.stage = i
+				break
+			}
+
+			// select {
+			// // If the context has been canceled then we are done
+			// case <-o.Done():
+			// 	return
+
+			// default:
+			// }
+
+			// If the last query triggered an error then stop the cascade of operations
+			if o.err != nil {
 				break
 			}
 		}
 	}()
 
-	// There was no error in starting the ouery itself
+	// There was no error in starting the query itself
 	return nil
 }
 
-// TODO: this is not fleshed out yet
 func (o *Operation) Run() error {
+	// If the operations have already produced an error then don't start
 	if o.err != nil {
 		return o.err
 	}
 
+	// Start the operations
 	var err = o.Start()
 	if err != nil {
 		return err
 	}
 
-	var (
-		// TODO: might need to close these
-		futureChan    = o.Future()
-		oueryDoneChan = o.Done()
-		doneChan      = make(chan struct{})
-	)
+	// Wait for the operations to end
+	o.Wait()
 
-	go func() {
-		defer close(doneChan)
-
-		for {
-			select {
-			case <-futureChan:
-				return
-
-			case <-oueryDoneChan:
-				return
-			}
-		}
-	}()
-
-	<-doneChan
-
-	if o.err != nil {
-		return o.err
-	}
-
-	if o.results != nil {
-		return ErrNilResults
-	}
-
-	return nil
+	return o.err
 }
 
-func (o *Operation) AddOperation(of func()) *Operation {
+func (o *Operation) AddOperation(of OpFunc) *Operation {
 	if of == nil {
 		o.err = ErrEmptyOperationFunc
 		return o
 	}
 
-	o.oueryFuncs = append(o.oueryFuncs, of)
+	o.queryFuncs = append(o.queryFuncs, of)
 	return o
 }
 
-func (o *Operation) WithOperation(of func()) *Operation {
-	if of == nil {
+func (o *Operation) WithOperations(ofs []OpFunc) *Operation {
+	if ofs == nil {
 		o.err = ErrEmptyOperationFunc
 		return o
 	}
 
-	o.oueryFuncs = []func(){of}
+	o.queryFuncs = ofs
 	return o
 }
 
@@ -182,13 +198,6 @@ func (o *Operation) WithOutput(output *[]storage.Item) *Operation {
 	return o
 }
 
-// func (o *Operation) IsStream(stream bool) {
-// 	o.stream = stream
-// }
-
-// func (o *Operation) Wait() {}
-// func (o *Operation) WaitForResults() {}
-
 func (o *Operation) Done() <-chan struct{} {
 	return o.ctx.Done()
 }
@@ -211,6 +220,62 @@ func (o *Operation) Cancel() {
 	}
 }
 
-func (o *Operation) IsAsync() {
+func (o *Operation) IsAsync() bool {
 	return o.async
 }
+
+func (o *Operation) IsRunning() bool {
+	return o.running
+}
+
+func (o *Operation) Stage() int {
+	return o.stage
+}
+
+func (o *Operation) Wait() {
+	for {
+		select {
+		case <-o.ctx.Done():
+			return
+
+		default:
+			// If it's not running anymore or an error was produced then return out
+			switch {
+			case !o.running:
+				return
+
+			case o.err != nil:
+				return
+			}
+		}
+	}
+}
+
+func (o *Operation) WaitWithTimeout(timeout time.Duration) error {
+	var (
+		done  = o.ctx.Done()
+		timer = time.After(timeout)
+	)
+
+	for {
+		select {
+		case <-done:
+			return o.err
+
+		case <-timer:
+			return errors.New("Timeout hit")
+
+		default:
+			// If it's not running anymore or an error was produced then return out
+			if !o.running || o.err != nil {
+				return o.err
+			}
+		}
+	}
+}
+
+// func (o *Operation) IsStream(stream bool) {
+// 	o.stream = stream
+// }
+
+// func (o *Operation) WaitForResults() {}

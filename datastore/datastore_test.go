@@ -36,7 +36,10 @@ func init() {
 }
 
 func TestSet(t *testing.T) {
-	var wg = &sync.WaitGroup{}
+	var (
+		wg  = &sync.WaitGroup{}
+		ctx = context.Background()
+	)
 
 	for i, obj := range test.Objs {
 		wg.Add(1)
@@ -48,9 +51,7 @@ func TestSet(t *testing.T) {
 				wg.Done()
 			}()
 
-			err := test.DB.Set(obj.ID(), obj, map[string]interface{}{
-				"another": i % 10,
-			})
+			err := test.DB.Set(ctx, obj)
 			if err != nil {
 				t.Fatalf("err %+v", err)
 			}
@@ -60,13 +61,27 @@ func TestSet(t *testing.T) {
 	wg.Wait()
 }
 
+func TestSetMulti(t *testing.T) {
+	// For now just do this
+	var ifaces = make([]storage.Item, len(test.Objs))
+	for i := range test.Objs {
+		ifaces[i] = test.Objs[i]
+	}
+
+	var err = test.DB.SetMulti(context.Background(), ifaces)
+	if err != nil {
+		t.Fatalf("err %+v", err)
+	}
+}
+
 func TestGetBy(t *testing.T) {
-	items, err := test.DB.GetBy("another", "=", 0, -1)
+	var ctx = context.Background()
+	items, err := test.DB.GetBy(ctx, "another", "=", 0, -1)
 	if err != nil {
 		t.Fatalf("err %+v:", err)
 	}
 
-	fmt.Println("items", items)
+	fmt.Printf("Items: %+v\nLength: %d\n", items, len(items))
 }
 
 func TestGetMulti(t *testing.T) {
@@ -214,6 +229,15 @@ func TestIteratorBy(t *testing.T) {
 			t.Fatalf("err %+v", err)
 		}
 
-		fmt.Println("item", item)
+		fmt.Println("item", item, testt)
 	}
+}
+
+func TestGetAll(t *testing.T) {
+	var items, err = test.DB.GetAll(context.Background())
+	if err != nil {
+		t.Fatalf("err %+v", err)
+	}
+
+	fmt.Println("len", len(items))
 }
