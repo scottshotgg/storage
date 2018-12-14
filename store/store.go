@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/pizzahutdigital/storage/storage"
+	"github.com/scottshotgg/storage/storage"
 	"google.golang.org/api/iterator"
 )
 

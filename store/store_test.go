@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pizzahutdigital/storage/store"
+	"github.com/scottshotgg/storage/store"
 
-	dstore "github.com/pizzahutdigital/datastore"
-	"github.com/pizzahutdigital/storage/datastore"
+	dstore "github.com/scottshotgg/datastore"
+	"github.com/scottshotgg/storage/datastore"
 
 	redigo "github.com/go-redis/redis"
-	"github.com/pizzahutdigital/storage/redis"
+	"github.com/scottshotgg/storage/redis"
 )
 
 var (

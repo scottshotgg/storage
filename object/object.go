@@ -3,8 +3,8 @@ package object
 import (
 	dstore "cloud.google.com/go/datastore"
 	"github.com/golang/protobuf/proto"
-	pb "github.com/pizzahutdigital/storage/protobufs"
-	"github.com/pizzahutdigital/storage/storage"
+	pb "github.com/scottshotgg/storage/protobufs"
+	"github.com/scottshotgg/storage/storage"
 )
 
 // Object implements Item

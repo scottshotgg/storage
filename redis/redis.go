@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	redigo "github.com/go-redis/redis"
-	"github.com/pizzahutdigital/storage/object"
-	"github.com/pizzahutdigital/storage/storage"
+	"github.com/scottshotgg/storage/object"
+	"github.com/scottshotgg/storage/storage"
 	"google.golang.org/api/iterator"
 )
 

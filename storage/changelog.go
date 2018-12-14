@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
-	pb "github.com/pizzahutdigital/storage/protobufs"
+	pb "github.com/scottshotgg/storage/protobufs"
 )
 
 type ChangelogIter interface {

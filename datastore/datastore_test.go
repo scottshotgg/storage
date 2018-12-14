@@ -8,11 +8,11 @@ import (
 	"sync"
 	"testing"
 
-	dstore "github.com/pizzahutdigital/datastore"
-	"github.com/pizzahutdigital/storage/datastore"
-	"github.com/pizzahutdigital/storage/object"
-	"github.com/pizzahutdigital/storage/storage"
-	"github.com/pizzahutdigital/storage/test"
+	dstore "github.com/scottshotgg/datastore"
+	"github.com/scottshotgg/storage/datastore"
+	"github.com/scottshotgg/storage/object"
+	"github.com/scottshotgg/storage/storage"
+	"github.com/scottshotgg/storage/test"
 	"google.golang.org/api/iterator"
 )
 

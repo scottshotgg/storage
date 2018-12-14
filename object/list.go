@@ -3,7 +3,7 @@ package object
 import (
 	"errors"
 
-	"github.com/pizzahutdigital/storage/storage"
+	"github.com/scottshotgg/storage/storage"
 )
 
 type ObjectList struct {

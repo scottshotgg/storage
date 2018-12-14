@@ -8,9 +8,9 @@ import (
 
 	dstore "cloud.google.com/go/datastore"
 	"github.com/hashicorp/go-multierror"
-	"github.com/pizzahutdigital/datastore"
-	"github.com/pizzahutdigital/storage/object"
-	"github.com/pizzahutdigital/storage/storage"
+	"github.com/scottshotgg/datastore"
+	"github.com/scottshotgg/storage/object"
+	"github.com/scottshotgg/storage/storage"
 	"google.golang.org/api/iterator"
 )
 

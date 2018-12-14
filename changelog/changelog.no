@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pizzahutdigital/storage/storage"
+	"github.com/scottshotgg/storage/storage"
 )
 
 type Changelog struct {

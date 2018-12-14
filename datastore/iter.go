@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	dstore "cloud.google.com/go/datastore"
-	"github.com/pizzahutdigital/storage/object"
-	"github.com/pizzahutdigital/storage/storage"
+	"github.com/scottshotgg/storage/object"
+	"github.com/scottshotgg/storage/storage"
 )
 
 type Iter struct {

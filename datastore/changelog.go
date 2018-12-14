@@ -4,7 +4,7 @@ import (
 	"context"
 
 	dstore "cloud.google.com/go/datastore"
-	"github.com/pizzahutdigital/storage/storage"
+	"github.com/scottshotgg/storage/storage"
 )
 
 type ChangelogIter struct {

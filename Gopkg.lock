@@ -85,7 +85,7 @@
 
 [[projects]]
   digest = "1:d346883ccd7bdb1d479888d661de6c89ede911f58ad54e0ae630b45f355d7add"
-  name = "github.com/pizzahutdigital/datastore"
+  name = "github.com/scottshotgg/datastore"
   packages = ["."]
   pruneopts = "UT"
   revision = "28da952697c240c54a8dee53b5a2cd1c8f33012f"
@@ -283,7 +283,7 @@
     "github.com/golang/protobuf/proto",
     "github.com/google/uuid",
     "github.com/hashicorp/go-multierror",
-    "github.com/pizzahutdigital/datastore",
+    "github.com/scottshotgg/datastore",
     "google.golang.org/api/iterator",
   ]
   solver-name = "gps-cdcl"

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/pizzahutdigital/storage/store"
+	"github.com/scottshotgg/storage/store"
 )
 
 type DB struct {

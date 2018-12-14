@@ -7,9 +7,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/pizzahutdigital/storage/inmem"
-	"github.com/pizzahutdigital/storage/store"
-	"github.com/pizzahutdigital/storage/test"
+	"github.com/scottshotgg/storage/inmem"
+	"github.com/scottshotgg/storage/store"
+	"github.com/scottshotgg/storage/test"
 )
 
 func init() {

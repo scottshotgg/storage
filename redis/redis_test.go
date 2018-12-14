@@ -10,10 +10,10 @@ import (
 	"time"
 
 	redigo "github.com/go-redis/redis"
-	"github.com/pizzahutdigital/storage/object"
-	"github.com/pizzahutdigital/storage/redis"
-	"github.com/pizzahutdigital/storage/storage"
-	"github.com/pizzahutdigital/storage/test"
+	"github.com/scottshotgg/storage/object"
+	"github.com/scottshotgg/storage/redis"
+	"github.com/scottshotgg/storage/storage"
+	"github.com/scottshotgg/storage/test"
 	"google.golang.org/api/iterator"
 )
 

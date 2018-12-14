@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pizzahutdigital/storage/query"
-	"github.com/pizzahutdigital/storage/storage"
+	"github.com/scottshotgg/storage/query"
+	"github.com/scottshotgg/storage/storage"
 )
 
 func TestNew(t *testing.T) {
