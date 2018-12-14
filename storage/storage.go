@@ -4,13 +4,7 @@ import (
 	"context"
 )
 
-// type ItemList interface {
-// 	Values() ([]storage.Item, error)
-// }
-
 type Storage interface {
-	// Name() string
-	// Type() storeType
 	Get(ctx context.Context, id string) (Item, error)
 	GetBy(ctx context.Context, id, op string, value interface{}, limit int) ([]Item, error)
 	GetMulti(ctx context.Context, ids ...string) ([]Item, error)
@@ -20,28 +14,18 @@ type Storage interface {
 	SetMulti(ctx context.Context, items []Item) error
 
 	Delete(id string) error
+	// DeleteAll() error
 
 	Iterator() (Iter, error)
 	IteratorBy(key, op string, value interface{}) (Iter, error)
 
-	DeleteChangelogs(ids ...string) error
-	ChangelogIterator() (ChangelogIter, error)
+	// Changelog stuff: move this to it's own file
 	GetChangelogsForObject(id string) ([]Changelog, error)
 	GetLatestChangelogForObject(id string) (*Changelog, error)
-}
 
-type Item interface {
-	ID() string
-	Value() []byte
-	Timestamp() int64
-	Keys() map[string]interface{}
+	DeleteChangelogs(ids ...string) error
 
-	MarshalBinary() (data []byte, err error)
-	UnmarshalBinary(data []byte) error
-}
-
-type Iter interface {
-	Next() (Item, error)
+	ChangelogIterator() (ChangelogIter, error)
 }
 
 type Result struct {
