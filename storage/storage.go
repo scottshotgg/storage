@@ -14,6 +14,8 @@ type Storage interface {
 	SetMulti(ctx context.Context, items []Item) error
 
 	Delete(id string) error
+	// DeleteBy
+	// DeleteMulti
 	// DeleteAll() error
 
 	Iterator() (Iter, error)

@@ -25,7 +25,7 @@ var (
 	ErrNotImplemented = errors.New("Not implemented")
 )
 
-func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
+func (db *DB) Get(_ context.Context, id string) (storage.Item, error) {
 	var (
 		value string
 		err   error
@@ -67,11 +67,31 @@ func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	return o, o.UnmarshalBinary([]byte(value))
 }
 
-func (db *DB) GetAll(ctx context.Context) ([]storage.Item, error) {
-	return nil, nil
+func (db *DB) GetAll(_ context.Context) ([]storage.Item, error) {
+	var results, err = db.Instance.HGetAll("something").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		i     int
+		items = make([]storage.Item, len(results))
+	)
+
+	for _, result := range results {
+		items[i] = &object.Object{}
+		err = items[i].UnmarshalBinary([]byte(result))
+		if err != nil {
+			return items, err
+		}
+
+		i++
+	}
+
+	return items, nil
 }
 
-func (db *DB) Set(ctx context.Context, i storage.Item) (err error) {
+func (db *DB) Set(_ context.Context, i storage.Item) (err error) {
 	for key, value := range i.Keys() {
 		_, err = db.Instance.SAdd("::something::"+key, i.ID()+"::"+fmt.Sprintf("%v", value)).Result()
 		// _, err = db.Instance.HSet("::something::"+key, id+"::"+fmt.Sprintf("%v", value), value).Result()
@@ -81,7 +101,7 @@ func (db *DB) Set(ctx context.Context, i storage.Item) (err error) {
 		}
 	}
 
-	changelog := storage.GenInsertChangelog(i)
+	var changelog = storage.GenInsertChangelog(i)
 	_, err = db.Instance.HSet("changelog", changelog.ID, changelog).Result()
 	if err != nil {
 		return err
@@ -92,12 +112,39 @@ func (db *DB) Set(ctx context.Context, i storage.Item) (err error) {
 	return err
 }
 
-func (db *DB) SetMulti(ctx context.Context, items []storage.Item) error {
-	return nil
-}
+func (db *DB) SetMulti(_ context.Context, items []storage.Item) error {
+	var (
+		// Build two maps for the changelog and the items
+		clMap   = map[string]interface{}{}
+		itemMap = map[string]interface{}{}
+	)
 
-func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error) {
-	return nil, nil
+	for i := range items {
+		// Only insert unique items
+		if itemMap[items[i].ID()] == nil {
+			itemMap[items[i].ID()] = items[i]
+
+			var cl = storage.GenInsertChangelog(items[i])
+			clMap[cl.ID] = cl
+
+		}
+	}
+
+	// Send off the changelogs
+	var err = db.Instance.HMSet("changelog", clMap).Err()
+	if err != nil {
+		// delete all the changelogs
+		return err
+	}
+
+	// Send off the items
+	err = db.Instance.HMSet("something", itemMap).Err()
+	if err != nil {
+		// do something about this
+		return err
+	}
+
+	return nil
 }
 
 func (db *DB) GetMulti(_ context.Context, ids ...string) ([]storage.Item, error) {
@@ -125,7 +172,7 @@ func (db *DB) GetMulti(_ context.Context, ids ...string) ([]storage.Item, error)
 	return items, nil
 }
 
-func (db *DB) GetBy(ctx context.Context, key string, op string, value interface{}, limit int) ([]storage.Item, error) {
+func (db *DB) GetBy(_ context.Context, key string, op string, value interface{}, limit int) ([]storage.Item, error) {
 	amount, err := db.Instance.SCard("::something::" + key).Result()
 	if err != nil {
 		return nil, err
@@ -167,6 +214,10 @@ func (db *DB) Iterator() (storage.Iter, error) {
 	return &Iter{
 		I: db.Instance.HScan("something", 0, "", 1000000).Iterator(),
 	}, nil
+}
+
+func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error) {
+	return nil, ErrNotImplemented
 }
 
 func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {

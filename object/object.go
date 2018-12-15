@@ -150,9 +150,11 @@ func (o *Object) MarshalBinary() (data []byte, err error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (o *Object) UnmarshalBinary(data []byte) error {
-	var s pb.Item
+	var (
+		s   pb.Item
+		err = proto.Unmarshal(data, &s)
+	)
 
-	err := proto.Unmarshal(data, &s)
 	if err != nil {
 		return err
 	}

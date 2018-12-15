@@ -18,21 +18,24 @@ import (
 )
 
 func init() {
-	db := redis.DB{
-		Instance: redigo.NewClient(&redigo.Options{
-			Addr: "localhost:6379",
-			// Password:   os.Getenv("RP"),
-			MaxRetries: 10,
-			// TLSConfig: we should set this up
-			PoolSize:    1000,
-			ReadTimeout: time.Minute,
-			// ReadTimeout: -1,
-			IdleTimeout: -1,
-			// DialTimeout:
-		}),
-	}
+	var (
+		db = redis.DB{
+			Instance: redigo.NewClient(&redigo.Options{
+				Addr: "localhost:6379",
+				// Password:   os.Getenv("RP"),
+				MaxRetries: 10,
+				// TLSConfig: we should set this up
+				PoolSize:    1000,
+				ReadTimeout: time.Minute,
+				// ReadTimeout: -1,
+				IdleTimeout: -1,
+				// DialTimeout:
+			}),
+		}
 
-	_, err := db.Instance.Ping().Result()
+		_, err = db.Instance.Ping().Result()
+	)
+
 	if err != nil {
 		log.Fatalf("%+v", err)
 	}
@@ -53,7 +56,7 @@ func TestGet(t *testing.T) {
 				<-test.WorkerChan
 			}()
 
-			item, err := test.DB.Get(context.Background(), fmt.Sprintf("some_id_%d", i))
+			var item, err = test.DB.Get(context.Background(), fmt.Sprintf("some_id_%d", i))
 			if err != nil {
 				t.Fatalf("err %+v", err)
 			}
@@ -71,8 +74,20 @@ func TestGet(t *testing.T) {
 	wg.Wait()
 }
 
+func TestGetAll(t *testing.T) {
+	var items, err = test.DB.GetAll(context.Background())
+	if err != nil {
+		fmt.Printf("err %+v\n", err)
+	}
+
+	fmt.Println("items len", len(items))
+}
+
 func TestSet(t *testing.T) {
-	var wg = &sync.WaitGroup{}
+	var (
+		wg  sync.WaitGroup
+		ctx context.Context
+	)
 
 	for i, obj := range test.Objs {
 		wg.Add(1)
@@ -84,10 +99,7 @@ func TestSet(t *testing.T) {
 				<-test.WorkerChan
 			}()
 
-			fmt.Println("obj.Timestamp()", obj.Timestamp())
-			var err = test.DB.Set(obj.ID(), obj, map[string]interface{}{
-				"another": i % 10,
-			})
+			var err = test.DB.Set(ctx, obj)
 			if err != nil {
 				t.Errorf("err %+v", err)
 			}
@@ -95,6 +107,21 @@ func TestSet(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestSetMulti(t *testing.T) {
+	var ifaces = make([]storage.Item, len(test.Objs))
+
+	for i := range test.Objs {
+		ifaces[i] = test.Objs[i]
+	}
+
+	var err = test.DB.SetMulti(context.Background(), ifaces)
+	if err != nil {
+		fmt.Printf("err %+v\n", err)
+	}
+
+	fmt.Println("upload finished")
 }
 
 func TestGetMulti(t *testing.T) {
@@ -114,7 +141,7 @@ func TestGetMulti(t *testing.T) {
 }
 
 func TestGetBy(t *testing.T) {
-	items, err := test.DB.GetBy("another", "=", 0, -1)
+	var items, err = test.DB.GetBy(context.Background(), "another", "=", 0, -1)
 	if err != nil {
 		t.Fatalf("err %+v:", err)
 	}
@@ -123,7 +150,7 @@ func TestGetBy(t *testing.T) {
 }
 
 func TestIter(t *testing.T) {
-	iter, err := test.DB.Iterator()
+	var iter, err = test.DB.Iterator()
 	if err != nil {
 		t.Errorf("err %+v", err)
 	}
@@ -151,7 +178,7 @@ func TestIter(t *testing.T) {
 }
 
 func TestGetChangelogsForObject(t *testing.T) {
-	cls, err := test.DB.GetChangelogsForObject("some_id_0")
+	var cls, err = test.DB.GetChangelogsForObject("some_id_0")
 	if err != nil {
 		t.Errorf("err %+v", err)
 	}
