@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/scottshotgg/storage/storage"
 	"google.golang.org/api/iterator"
 )
@@ -273,282 +273,11 @@ func (s *Store) GetLatestChangelogForObject(id string) (*storage.Changelog, erro
 	return nil, errors.New("Not implemented")
 }
 
-/*
-Basic logic for sync:
-	Considering stores A and B and an object O
-
-	A) A has O while B does not
-			OR
-	B) A has a newer timestamp for O than B
-		- copy O from A to B
-
-	C) B has O while A does not
-			OR
-	D) B has a newer timestamp for O than A
-		- copy object O from B to A
-
-	... extrapolate for multiple stores ...
-*/
-
-// func (s *Store) Sync() error {
-// 	var primary storage.Storage
-// 	if len(s.Stores) < 1 {
-// 		return errors.New("nothing here to do dummy")
-// 	}
-
-// 	// Just assume the first one is the primary for now
-// 	primary = s.Stores[0]
-
-// 	iter, err := primary.Iterator()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// I hate declaring pointer... but this is the cheapest way to do it right now
-// 	var wg = &sync.WaitGroup{}
-
-// 	// For each item from the master's iterator ...
-// 	for {
-// 		var value storage.Item
-// 		// Get the next item
-// 		value, err = iter.Next()
-// 		if err != nil {
-// 			// Break if we are at the end
-// 			// TODO: change this to a different error later
-// 			if err == iterator.Done {
-// 				break
-// 			}
-
-// 			return err
-// 		}
-
-// 		wg.Add(1)
-
-// 		go func() {
-// 			defer wg.Done()
-
-// 			// For each non-primary store attached, attempt to async retrieve the same object
-// 			for _, store := range s.Stores[1:len(s.Stores)] {
-// 				wg.Add(1)
-// 				go func(store storage.Storage, item storage.Item) {
-// 					defer wg.Done()
-
-// 					// Get the item from the store
-// 					i, err := store.Get(item.ID())
-// 					if err != nil {
-// 						// TODO: need to keep a channel/sync map here
-// 						fmt.Println("err", err)
-// 					}
-
-// 					// Compare the item in the store to the item from the master
-// 					// TODO: Just use string for now; can't compare array
-// 					// We will implement a generic Compare function later
-// 					if string(item.Value()) != string(i.Value()) {
-// 						fmt.Println("err",
-// 							errors.New("not the same"),
-// 							string(item.Value()),
-// 							string(i.Value()))
-// 					}
-// 				}(store, value)
-// 			}
-// 		}()
-// 	}
-
-// 	// Wait on all the comparisons to finish
-// 	// Worker pool will probably be needed so that these don't all die in heat death
-// 	wg.Wait()
-
-// 	// TODO: Will need to return a "multi-error" essentially
-// 	return nil
-// }
-
-// func (s *Store) Sync2() error {
-// 	/*
-// 		1) get a changelog iter from one table
-// 		2) get all the changelogs from the other table by ObjectID
-// 		3) compare changelogs
-// 		4) perform appropriate action
-// 	*/
-
-// 	// Synchronously loop through all stores and sync them with eachother based on changelogs.
-// 	// This will gradually get easier as you iterate through the stores because the changelogs
-// 	// are deleted from each other after each run, preventing you from "re-syncing" based on
-// 	// old changelogs. As such, if they are decently consistent with eachother, then most
-// 	// changelogs will be mutually inclusive, further preventing any "re-syncing".
-
-// 	for _, store := range s.Stores {
-// 		clIter, err := store.ChangelogIterator()
-// 		if err != nil {
-// 			// TODO: log here
-// 			continue
-// 		}
-
-// 		var (
-// 			cl *storage.Changelog
-// 			wg = &sync.WaitGroup{}
-// 		)
-
-// 		for {
-// 			cl, err = clIter.Next()
-// 			if err != nil {
-// 				if err != iterator.Done {
-// 					// TODO: log here
-// 					// probably should set up a channel for errors
-// 				}
-
-// 				break
-// 			}
-
-// 			wg.Add(1)
-// 			go func(cl storage.Changelog) {
-// 				defer wg.Done()
-
-// 				/*
-// 					NOTES:
-// 					- loop through all stores - act on changelogs
-// 					- only squash a changelog if there is unanimous resolution
-// 					- run continuously
-// 					- run an inmem store as well; better response times, can always get to yourself
-// 				*/
-
-// 				// fmt.Println(s.Stores[1].(*redis.DB).Instance.SScan("changelog", 0, "", 1000000))
-// 				// var latestCL = &storage.Changelog{}
-// 				for _, store := range s.Stores[1:len(s.Stores)] {
-// 					// TODO: if there is no changelog then we need to compare the objects themselves...
-// 					var latest, err = store.GetLatestChangelogForObject(cl.ObjectID)
-// 					if err != nil {
-// 						// TODO: need to do something with the error
-// 						fmt.Printf("err %v\n", err)
-// 						return
-// 					}
-
-// 					ctx := context.Background()
-
-// 					// Figure out the latest one between the other stores
-// 					switch handleDiff(cl, *latest) {
-// 					// copy A to B
-// 					case 1:
-// 						// Check that the objectIDs are the same
-
-// 						// Check that the object is not newer than what we are uploading
-
-// 						// Get the item from the original store
-// 						item, err := s.Stores[0].Get(ctx, cl.ObjectID)
-// 						if err != nil {
-// 							// TODO: whattodo
-// 						}
-// 						// fmt.Println("s.Stores[0]")
-
-// 						// Get the item from the comparison store
-// 						item2, err := store.Get(ctx, cl.ObjectID)
-// 						if err != nil {
-// 							// TODO: whattodo
-// 						}
-
-// 						if item2.Timestamp() < cl.Timestamp {
-// 							fmt.Println("tt", item2.Timestamp(), cl.Timestamp, cl.ObjectID)
-
-// 							// Check the object timestamp just for good measure
-// 							fmt.Println("upserting", cl.ObjectID, store, item.Timestamp(), item2.Timestamp())
-
-// 							// Will need to store the secondary keys
-// 							err = store.Set(cl.ObjectID, item, nil)
-// 							if err != nil {
-// 								// wtf
-// 								fmt.Println("err uploading", err)
-// 							}
-
-// 							fmt.Println("upserted", cl.ObjectID)
-
-// 							err = store.DeleteChangelog(latest.ID)
-// 							if err != nil {
-// 								fmt.Printf("err deleting changelog %+v\n", err)
-// 							}
-// 						}
-
-// 						// if item2.Timestamp() < cl.Timestamp {
-// 						// 	fmt.Println("tt2", item2.Timestamp(), cl.Timestamp, cl.ObjectID)
-// 						// 	fmt.Println("upserting", cl.ObjectID, store, item.Timestamp(), item2.Timestamp())
-// 						// 	// Will need to store the keys
-// 						// 	err = store.Set(cl.ObjectID, item, nil)
-// 						// 	if err != nil {
-// 						// 		// wtf
-// 						// 		fmt.Println("err uploading", err)
-// 						// 	}
-// 						// 	fmt.Println("upserted", cl.ObjectID)
-
-// 						// 	// TODO: might need a separate [no timestamp upload] function
-// 						// }
-
-// 					// copy B to A
-// 					// case -1:
-// 					// 	// Check that the object is not newer than what we are uploading
-
-// 					// 	// Get the item from the original store
-// 					// 	item, err := s.Stores[0].Get(ctx, latest.ObjectID)
-// 					// 	if err != nil {
-// 					// 		// TODO: whattodo
-// 					// 	}
-// 					// 	// fmt.Println("s.Stores[0]")
-
-// 					// 	// Get the item from the comparison store
-// 					// 	item2, err := store.Get(ctx, latest.ObjectID)
-// 					// 	if err != nil {
-// 					// 		// TODO: whattodo
-// 					// 	}
-// 					// 	// fmt.Println("store")
-
-// 					// 	if item2.Timestamp() < latest.Timestamp {
-// 					// 		// Check the object timestamp just for good measure
-// 					// 	}
-
-// 					// 	fmt.Println("tt", item.Timestamp(), latest.Timestamp, latest.ObjectID)
-// 					// 	if item.Timestamp() < latest.Timestamp {
-// 					// 		fmt.Println("upserting", latest.ObjectID, store, item.Timestamp(), item2.Timestamp())
-// 					// 		// Will need to store the keys
-// 					// 		err = s.Stores[0].Set(latest.ObjectID, item2, nil)
-// 					// 		if err != nil {
-// 					// 			// wtf
-// 					// 			fmt.Println("err uploading", err)
-// 					// 		}
-// 					// 		fmt.Println("upserted", latest.ObjectID)
-// 					// 	}
-
-// 					// // wtf
-// 					default:
-// 						fmt.Println("wtf")
-// 					}
-
-// 					// delete off the younger one
-// 				}
-
-// 				// // TODO: kinda dangerous to just deref raw...
-// 				// // Compare the latest one from all other stores to the first one found
-// 				// handleDiff(*latestCL, cl)
-// 				/*
-// 					- Based on the number that comes back, copy the appropriate object over
-// 					- Delete the changelogs
-// 				*/
-
-// 			}(*cl)
-// 		}
-
-// 		fmt.Println("waiting")
-// 		// Wait on all changelog comparisons to finish before moving to the next store
-// 		wg.Wait()
-
-// 		// Ring cycle the stores
-// 		s.Stores = append(s.Stores[1:len(s.Stores)], s.Stores[0])
-// 	}
-
-// 	return nil
-// }
-
 func (s *Store) Audit() error {
 	// Copy the stores incase one is added later on
 	var storesCopy = s.Stores[0:len(s.Stores)]
 
-	// Iterate over all of the stores
+	// Iterate over all of the stores multiple times as changelogs are copied back and forth
 	for i := 0; i < len(storesCopy)*len(storesCopy); i++ {
 		// Assume the first store as the master for this iteration
 		var (
@@ -575,20 +304,22 @@ func (s *Store) Audit() error {
 			// time range and dispatch them
 			for {
 				// Get a changelog
-				cl, err := clIter.Next()
+				var cl, err = clIter.Next()
 				if err != nil {
 					if err == iterator.Done {
-						waitLength = time.Duration((len(objectIDMap)/1000)%10) * time.Second
+						waitLength = time.Duration((len(objectIDMap) / 1000)) * time.Second
 						break
 					}
 
 					return err
 				}
 
+				// Check if we have already seen this objectID
 				if objectIDMap[cl.ObjectID] != nil {
 					continue
 				}
 
+				// Mark that we have seen this objectID
 				objectIDMap[cl.ObjectID] = &struct{}{}
 
 				wg.Add(1)
@@ -614,11 +345,165 @@ func (s *Store) Audit() error {
 		// Ring cycle through the stores
 		storesCopy = append(storesCopy[1:len(storesCopy)], storesCopy[0])
 
+		fmt.Println("Waiting ", waitLength, " to catch up")
+
 		// Sleep for a bit to let the other store catch up with the load before we start again
 		time.Sleep(waitLength)
 	}
 
 	return nil
+}
+
+// Sync attempts to look through all objects of all stores and distribute the most up to date set
+// This should ONLY be run at times when there is low writes
+func (s *Store) Sync() error {
+	// Copy the stores incase one is added later on
+	var (
+		storesCopy = s.Stores[0:len(s.Stores)]
+
+		errChan    = make(chan error, 100)
+		workerChan = make(chan struct{}, 10)
+
+		merr *multierror.Error
+	)
+
+	// Spin off a goroutine to process the errors
+	go func() {
+		// The assumption at this point is that all errors are non-nil
+		var err error
+		for err = range errChan {
+			multierror.Append(merr, err)
+		}
+	}()
+
+	// Iterate over all of the stores
+	for i := 0; i < len(storesCopy); i++ {
+		// Assume the first store as the master for this iteration
+		var (
+			item storage.Item
+
+			// Declare the master for this iteration
+			master = storesCopy[0]
+
+			// Get an item iterator from the master
+			iter, err = master.Iterator()
+		)
+
+		if err != nil {
+			errChan <- err
+
+			// Just skip the entire verification if we can't get the iterator for some reason
+			continue
+		}
+
+		for {
+			item, err = iter.Next()
+			if err != nil {
+				// log
+
+				if err == iterator.Done {
+					break
+				}
+
+				return err
+			}
+
+			// Reserve a spot for processing items BEFORE spawning a goroutine
+			// This will cut down on internal runtime coordination and memory/processing requirements
+			workerChan <- struct{}{}
+
+			// Spin off a worker
+			go func() {
+				// Check the stores for that item
+				var err = checkStoresForItem(item, storesCopy)
+
+				// Enable another worker before processing the error
+				<-workerChan
+
+				// Process the error
+				if err != nil {
+					errChan <- err
+				}
+			}()
+		}
+	}
+
+	// Close the channels
+	close(workerChan)
+	close(errChan)
+
+	// Return either error or nil
+	return merr.ErrorOrNil()
+}
+
+func checkStoresForItem(item storage.Item, storesCopy []storage.Storage) error {
+	var (
+		master = storesCopy[0]
+		wg     sync.WaitGroup
+		ctx    = context.Background()
+
+		// Spawn 10 workers to take care of the stores
+		workerChan = make(chan struct{}, 10)
+		errChan    = make(chan error, 100)
+
+		merr *multierror.Error
+	)
+
+	// Spin off a goroutine to process the errors
+	go func() {
+		// The assumption at this point is that all errors are non-nil
+		var err error
+		for err = range errChan {
+			multierror.Append(merr, err)
+		}
+	}()
+
+	// Range over all "slaves" of that master storage
+	for i, slave := range storesCopy[1:] {
+		wg.Add(1)
+		workerChan <- struct{}{}
+
+		go func(i int) {
+			// Do something with the error later
+			var item2, err = slave.Get(ctx, item.ID())
+
+			defer func() {
+				wg.Done()
+				<-workerChan
+			}()
+
+			if err != nil {
+				// log
+				errChan <- err
+				return
+			}
+
+			// If the slaves timestamp is less than that of the master then copy master -> slave
+			if item2.Timestamp() < item.Timestamp() {
+				err = slave.Set(ctx, item)
+				// If the masters timestamp is less that that of the slave then copy slave -> master
+			} else if item.Timestamp() < item2.Timestamp() {
+				err = master.Set(ctx, item2)
+			}
+			// else we are assuming they are the same and/or that we can't do anything about it
+
+			if err != nil {
+				// log
+				errChan <- err
+				return
+			}
+		}(i)
+	}
+
+	// Wait until all workers are done
+	wg.Wait()
+
+	// Close the channels
+	close(workerChan)
+	close(errChan)
+
+	// Return either error or nil
+	return merr.ErrorOrNil()
 }
 
 func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storage.Storage) error {
@@ -665,11 +550,10 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 	var (
 		latest        = getLatest(cls)
 		refetchLatest bool
+		ctx           = context.Background()
 	)
 
-	var ctx = context.Background()
-
-	// If the master timestamp is greater than the slaves object timestamp then update
+	// If the master timestamp is greater than the slaves object timestamp then update the slave
 	if item.Timestamp() < latest.Timestamp {
 		item, err = master.Get(ctx, objectID)
 		if err != nil {
@@ -682,7 +566,7 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 			return err
 		}
 	} else if item.Timestamp() > latest.Timestamp {
-		// Update the slaves object
+		// Update the masters object
 		err = master.Set(ctx, item)
 		if err != nil {
 			return err
@@ -697,21 +581,21 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 
 	// Delete all master timestamps from the master that were retrieved related to this object
 	// We processed this object so do this regardless of whether it was used to update
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	// wg.Add(1)
+	// go func() {
+	// defer wg.Done()
 
-		var clIDs []string
-		for i := range cls {
-			clIDs = append(clIDs, cls[i].ID)
-		}
+	var clIDs []string
+	for i := range cls {
+		clIDs = append(clIDs, cls[i].ID)
+	}
 
-		err = master.DeleteChangelogs(clIDs...)
-		if err != nil {
-			// TODO: probably shouldn't return here
-			return
-		}
-	}()
+	err = master.DeleteChangelogs(clIDs...)
+	if err != nil {
+		// TODO: probably shouldn't return here
+		return err
+	}
+	// }()
 
 	// TODO: Might be able to somehow pipe all of this until the end
 	wg.Add(1)
@@ -719,8 +603,9 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 		defer wg.Done()
 
 		// Fetch changelogs for that object from slave
-		cls, err := slave.GetChangelogsForObject(objectID)
+		var cls, err = slave.GetChangelogsForObject(objectID)
 		if err != nil {
+			// log
 			return
 		}
 
@@ -739,8 +624,7 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 		// Delete all older changelogs
 		err = slave.DeleteChangelogs(clIDs...)
 		if err != nil {
-			// TODO: probably shouldn't return here
-			return
+			// log
 		}
 	}()
 
@@ -809,16 +693,16 @@ func handleDiff(latest, cl storage.Changelog) int {
 /*
 	Changelog notes
 
-	// get changelog from db1
-	// find latest changelog1
+	get changelog from db1
+	find latest changelog1
 
-	// get changelogs from db2
-	// find latest changelog2
+	get changelogs from db2
+	find latest changelog2
 
-	// compare changelog1 to changelog2
-	// if changelog1 is newer:
-	//	- get objects from db1 and db2
-	//	- compare changelog timestamp to object timestamps in db1 and db2
-	//	- if still newer than db2:
-	//		- update db2 with object
+	compare changelog1 to changelog2
+	if changelog1 is newer:
+		- get objects from db1 and db2
+		- compare changelog timestamp to object timestamps in db1 and db2
+		- if still newer than db2:
+			- update db2 with object
 */

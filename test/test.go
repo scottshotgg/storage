@@ -58,7 +58,7 @@ func init() {
 			log.Fatalf("err %+v", err)
 		}
 
-		// Create an object (item) to put in the database
+		// Create an object (Item) to put in the database
 		Objs = append(Objs, object.New(fmt.Sprintf("some_id_%d", i), bytes, map[string]interface{}{
 			"another": i % 10,
 		}))

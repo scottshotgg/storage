@@ -41,7 +41,7 @@ func getLatest(cls []storage.Changelog) (*storage.Changelog, error) {
 }
 
 func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
-	return nil, ErrNotImplemented
+	return nil, dberrors.ErrNotImplemented
 }
 
 func (db *DB) GetChangelogsForObject(id string) ([]storage.Changelog, error) {

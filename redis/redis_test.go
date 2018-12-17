@@ -10,16 +10,17 @@ import (
 	"time"
 
 	redigo "github.com/go-redis/redis"
+	"google.golang.org/api/iterator"
+
 	"github.com/scottshotgg/storage/object"
 	"github.com/scottshotgg/storage/redis"
 	"github.com/scottshotgg/storage/storage"
 	"github.com/scottshotgg/storage/test"
-	"google.golang.org/api/iterator"
 )
 
 func init() {
 	var (
-		db = redis.DB{
+		test.DB = redis.DB{
 			Instance: redigo.NewClient(&redigo.Options{
 				Addr: "localhost:6379",
 				// Password:   os.Getenv("RP"),
@@ -39,12 +40,25 @@ func init() {
 	if err != nil {
 		log.Fatalf("%+v", err)
 	}
-
-	test.DB = &db
 }
 
 func TestGet(t *testing.T) {
-	var wg = &sync.WaitGroup{}
+	var (
+		wg sync.WaitGroup
+
+		itemChan = make(chan storage.Item, test.WorkerLimit)
+		items    []storage.Item
+
+		doneChan = make(chan struct{})
+	)
+
+	go func() {
+		for item := range itemChan {
+			items = append(items, item)
+		}
+
+		doneChan <- struct{}{}
+	}()
 
 	for i := 0; i < test.AmountOfTests; i++ {
 		wg.Add(1)
@@ -52,26 +66,27 @@ func TestGet(t *testing.T) {
 
 		go func(i int) {
 			defer func() {
-				wg.Done()
 				<-test.WorkerChan
+				wg.Done()
 			}()
 
 			var item, err = test.DB.Get(context.Background(), fmt.Sprintf("some_id_%d", i))
 			if err != nil {
 				t.Fatalf("err %+v", err)
+				return
 			}
 
-			fmt.Println("item", item.ID(), item.Timestamp())
-
-			var testt test.Test
-			err = json.Unmarshal(item.Value(), &testt)
-			if err != nil {
-				t.Fatalf("err %+v", err)
-			}
+			itemChan <- item
 		}(i)
 	}
 
 	wg.Wait()
+
+	close(itemChan)
+
+	<-doneChan
+
+	fmt.Printf("len %d\n", len(items))
 }
 
 func TestGetAll(t *testing.T) {

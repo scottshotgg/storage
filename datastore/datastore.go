@@ -25,7 +25,7 @@ const (
 
 var (
 	ErrTimeout                   = errors.New("Timeout")
-	ErrNotImplemented            = errors.New("Not implemented")
+	dberrors.ErrNotImplemented            = errors.New("Not implemented")
 	ErrTransactionAmountExceeded = errors.New("Only 12 items can be batched; this is a Google Datastore limit")
 )
 

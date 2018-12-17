@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	redigo "github.com/go-redis/redis"
+	dberrors "github.com/scottshotgg/storage/errors"
 	"github.com/scottshotgg/storage/object"
 	"github.com/scottshotgg/storage/storage"
 	"google.golang.org/api/iterator"
@@ -19,11 +20,6 @@ type DB struct {
 type ChangelogIter struct {
 	I *redigo.ScanIterator
 }
-
-var (
-	ErrTimeout        = errors.New("Timeout")
-	ErrNotImplemented = errors.New("Not implemented")
-)
 
 func (db *DB) Get(_ context.Context, id string) (storage.Item, error) {
 	var (
@@ -91,12 +87,25 @@ func (db *DB) GetAll(_ context.Context) ([]storage.Item, error) {
 	return items, nil
 }
 
+func buildZIndexSecondaryKey(i storage.Item) (m redigo.Z) {
+	var sk = "id::" + i.ID() + "::"
+
+	for key, value := range i.Keys() {
+		sk += fmt.Sprintf("%s::%v::", key, value)
+	}
+
+	return redigo.Z{
+		Score:  0,
+		Member: sk[:len(sk)-2],
+	}
+}
+
 func (db *DB) Set(_ context.Context, i storage.Item) (err error) {
 	for key, value := range i.Keys() {
 		_, err = db.Instance.SAdd("::something::"+key, i.ID()+"::"+fmt.Sprintf("%v", value)).Result()
-		// _, err = db.Instance.HSet("::something::"+key, id+"::"+fmt.Sprintf("%v", value), value).Result()
+
+		// _, err = db.Instance.ZAdd("::something_sk::", buildZIndexSecondaryKey(i)).Result()
 		if err != nil {
-			fmt.Println("err", err)
 			return err
 		}
 	}
@@ -109,6 +118,10 @@ func (db *DB) Set(_ context.Context, i storage.Item) (err error) {
 
 	i.(*object.Object).SetTimestamp(changelog.Timestamp)
 	_, err = db.Instance.HSet("something", i.ID(), i).Result()
+	if err != nil {
+		// delete the changelog
+	}
+
 	return err
 }
 
@@ -117,34 +130,58 @@ func (db *DB) SetMulti(_ context.Context, items []storage.Item) error {
 		// Build two maps for the changelog and the items
 		clMap   = map[string]interface{}{}
 		itemMap = map[string]interface{}{}
+		// sks     []redigo.Z
+		// sksRemove []redigo.Z
+		pipe = db.Instance.Pipeline()
 	)
 
 	for i := range items {
+		for key, value := range items[i].Keys() {
+			var _, err = pipe.SAdd("::something::"+key, items[i].ID()+"::"+fmt.Sprintf("%v", value)).Result()
+
+			// _, err = db.Instance.ZAdd("::something_sk::", buildZIndexSecondaryKey(i)).Result()
+			if err != nil {
+				return err
+			}
+		}
+
 		// Only insert unique items
 		if itemMap[items[i].ID()] == nil {
 			itemMap[items[i].ID()] = items[i]
 
 			var cl = storage.GenInsertChangelog(items[i])
 			clMap[cl.ID] = cl
-
+			// sks = append(sks, buildZIndexSecondaryKey(items[i]))
 		}
 	}
 
 	// Send off the changelogs
-	var err = db.Instance.HMSet("changelog", clMap).Err()
+	var err = pipe.HMSet("changelog", clMap).Err()
 	if err != nil {
 		// delete all the changelogs
 		return err
 	}
 
 	// Send off the items
-	err = db.Instance.HMSet("something", itemMap).Err()
+	err = pipe.HMSet("something", itemMap).Err()
 	if err != nil {
 		// do something about this
 		return err
 	}
 
-	return nil
+	// db.Instance.ZRem()
+
+	// _, err = db.Instance.ZAdd("::something_sk::", sks...).Result()
+	// if err != nil {
+	// 	// do something about this
+	// 	return err
+	// }
+
+	_, err = pipe.Exec()
+
+	// might have to check the errors from each command
+
+	return err
 }
 
 func (db *DB) GetMulti(_ context.Context, ids ...string) ([]storage.Item, error) {
@@ -217,7 +254,7 @@ func (db *DB) Iterator() (storage.Iter, error) {
 }
 
 func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error) {
-	return nil, ErrNotImplemented
+	return nil, dberrors.ErrNotImplemented
 }
 
 func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
