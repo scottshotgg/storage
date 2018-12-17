@@ -570,6 +570,9 @@ func (s *Store) QuickSyncWith() error {
 		itemCacheMap = map[string]storage.Item{}
 	)
 
+	// Make a map of the unprocessable items and then loop over the deleteChangelogs and any
+	// with the same objectID should be kept (deleted from the deleteMap)
+
 	// Process the changelogs for each store
 	for dbID, store := range s.Stores {
 		// Declare a context for each store
