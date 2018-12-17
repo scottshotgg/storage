@@ -8,7 +8,7 @@ import (
 
 	dstore "cloud.google.com/go/datastore"
 	"github.com/hashicorp/go-multierror"
-	"github.com/scottshotgg/datastore"
+	"github.com/scottshotgg/storage/impl/datastore"
 	"github.com/scottshotgg/storage/object"
 	"github.com/scottshotgg/storage/storage"
 	"google.golang.org/api/iterator"
@@ -28,6 +28,11 @@ var (
 	dberrors.ErrNotImplemented            = errors.New("Not implemented")
 	ErrTransactionAmountExceeded = errors.New("Only 12 items can be batched; this is a Google Datastore limit")
 )
+
+// Audit uses the default audit function
+func (db *DB) Audit() (map[string]*storage.Changelog, error) {
+	return audit.Audit(db)
+}
 
 func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	var (

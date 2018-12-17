@@ -12,34 +12,50 @@ import (
 	redigo "github.com/go-redis/redis"
 	"google.golang.org/api/iterator"
 
+	"github.com/scottshotgg/storage/impl/redis"
 	"github.com/scottshotgg/storage/object"
-	"github.com/scottshotgg/storage/redis"
 	"github.com/scottshotgg/storage/storage"
 	"github.com/scottshotgg/storage/test"
 )
 
 func init() {
-	var (
-		test.DB = redis.DB{
-			Instance: redigo.NewClient(&redigo.Options{
-				Addr: "localhost:6379",
-				// Password:   os.Getenv("RP"),
-				MaxRetries: 10,
-				// TLSConfig: we should set this up
-				PoolSize:    1000,
-				ReadTimeout: time.Minute,
-				// ReadTimeout: -1,
-				IdleTimeout: -1,
-				// DialTimeout:
-			}),
-		}
+	var err error
 
-		_, err = db.Instance.Ping().Result()
-	)
+	test.DB, err = redis.New(&redigo.Options{
+		Addr: "localhost:6379",
+		// Password:   os.Getenv("RP"),
+		MaxRetries: 10,
+		// TLSConfig: we should set this up
+		PoolSize:    1000,
+		ReadTimeout: time.Minute,
+		// ReadTimeout: -1,
+		IdleTimeout: -1,
+		// DialTimeout:
+	})
 
 	if err != nil {
 		log.Fatalf("%+v", err)
 	}
+}
+
+func TestNew(t *testing.T) {
+	var db, err = redis.New(&redigo.Options{
+		Addr: "localhost:6379",
+		// Password:   os.Getenv("RP"),
+		MaxRetries: 10,
+		// TLSConfig: we should set this up
+		PoolSize:    1000,
+		ReadTimeout: time.Minute,
+		// ReadTimeout: -1,
+		IdleTimeout: -1,
+		// DialTimeout:
+	})
+
+	if err != nil {
+		log.Fatalf("%+v", err)
+	}
+
+	fmt.Println("ID", db.ID())
 }
 
 func TestGet(t *testing.T) {
@@ -199,4 +215,13 @@ func TestGetChangelogsForObject(t *testing.T) {
 	}
 
 	fmt.Println("cls", cls)
+}
+
+func TestAudit(t *testing.T) {
+	var cls, err = test.DB.Audit()
+	if err != nil {
+		t.Errorf("err %+v", err)
+	}
+
+	fmt.Println("len of cls", len(cls))
 }

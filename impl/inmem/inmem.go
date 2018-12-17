@@ -4,12 +4,12 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/scottshotgg/storage/store"
+	"github.com/scottshotgg/storage/storage"
 )
 
 type NonSyncStore struct {
 	sync.RWMutex
-	Data map[string]store.Item
+	Data map[string]storage.Item
 }
 
 type DB struct {
@@ -17,17 +17,17 @@ type DB struct {
 }
 
 type Iter struct {
-	// I *dstore.Iterator
+	// I *dstorage.Iterator
 }
 
-func (db *DB) Get(id string) (store.Item, error) {
+func (db *DB) Get(id string) (storage.Item, error) {
 	db.Instance.RLock()
 	defer db.Instance.RUnlock()
 
 	return db.Instance.Data[id], nil
 }
 
-func (db *DB) Set(id string, i store.Item) error {
+func (db *DB) Set(id string, i storage.Item) error {
 	db.Instance.Lock()
 
 	db.Instance.Data[id] = i
@@ -37,11 +37,11 @@ func (db *DB) Set(id string, i store.Item) error {
 	return nil
 }
 
-func (db *DB) Iterator() (store.Iter, error) {
+func (db *DB) Iterator() (storage.Iter, error) {
 	return nil, errors.New("Not implemented")
 }
 
-func (db *DB) ChangelogIterator() (store.ChangelogIter, error) {
+func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
 	return nil, errors.New("Not implemented")
 }
 
@@ -49,11 +49,11 @@ func (db *DB) Delete(id string) error {
 	return errors.New("Not implemented")
 }
 
-func (db *DB) GetLatestChangelogForObject(id string) (*store.Changelog, error) {
+func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
 	return nil, errors.New("Not implemented")
 }
 
-// func (i *Iter) Next() (store.Item, error) {
+// func (i *Iter) Next() (storage.Item, error) {
 // 	var s pb.Item
 
 // 	_, err := i.I.Next(&s)

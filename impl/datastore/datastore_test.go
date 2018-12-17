@@ -8,8 +8,8 @@ import (
 	"sync"
 	"testing"
 
-	dstore "github.com/scottshotgg/datastore"
-	"github.com/scottshotgg/storage/datastore"
+	dstore "github.com/pizzahutdigital/datastore"
+	"github.com/scottshotgg/storage/impl/datastore"
 	"github.com/scottshotgg/storage/object"
 	"github.com/scottshotgg/storage/storage"
 	"github.com/scottshotgg/storage/test"

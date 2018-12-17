@@ -7,7 +7,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/scottshotgg/storage/inmem2"
+	inmem "github.com/scottshotgg/storage/impl/inmem2"
 	"github.com/scottshotgg/storage/test"
 )
 
@@ -30,7 +30,7 @@ func TestSet(t *testing.T) {
 		// wg.Add(1)
 		// test.WorkerChan <- struct{}{}
 
-		// go func(obj *store.Object) {
+		// go func(obj *object.Object) {
 		// defer func() {
 		// 	<-test.WorkerChan
 		// 	wg.Done()

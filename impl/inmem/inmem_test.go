@@ -7,15 +7,16 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/scottshotgg/storage/inmem"
-	"github.com/scottshotgg/storage/store"
+	"github.com/scottshotgg/storage/impl/inmem"
+	"github.com/scottshotgg/storage/object"
+	"github.com/scottshotgg/storage/storage"
 	"github.com/scottshotgg/storage/test"
 )
 
 func init() {
 	test.DB = &inmem.DB{
 		Instance: &inmem.NonSyncStore{
-			Data: map[string]store.Item{},
+			Data: map[string]storage.Item{},
 		},
 	}
 }
@@ -24,7 +25,7 @@ func TestSize(t *testing.T) {
 	TestSet(t)
 
 	for _, data := range test.DB.(*inmem.DB).Instance.Data {
-		fmt.Println(unsafe.Sizeof(data.(*store.Object)))
+		fmt.Println(unsafe.Sizeof(data.(*object.Object)))
 	}
 }
 
@@ -35,7 +36,7 @@ func TestSet(t *testing.T) {
 		// wg.Add(1)
 		// test.WorkerChan <- struct{}{}
 
-		// go func(obj *store.Object) {
+		// go func(obj *object.Object) {
 		// defer func() {
 		// 	<-test.WorkerChan
 		// 	wg.Done()
@@ -53,7 +54,7 @@ func TestSet(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	var (
-		// item  store.Item
+		// item  storage.Item
 		// err   error
 		// testt test.Test
 		wg = &sync.WaitGroup{}

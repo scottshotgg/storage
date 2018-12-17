@@ -9,11 +9,11 @@ import (
 
 	"github.com/scottshotgg/storage/store"
 
-	dstore "github.com/scottshotgg/datastore"
-	"github.com/scottshotgg/storage/datastore"
+	dstore "github.com/pizzahutdigital/datastore"
+	"github.com/scottshotgg/storage/impl/datastore"
 
 	redigo "github.com/go-redis/redis"
-	"github.com/scottshotgg/storage/redis"
+	"github.com/scottshotgg/storage/impl/redis"
 )
 
 var (

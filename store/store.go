@@ -9,13 +9,17 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/scottshotgg/storage/storage"
 	"google.golang.org/api/iterator"
+
+	"github.com/scottshotgg/storage/storage"
 )
 
 // Store implements Storage with helpers and some ochestration
 type Store struct {
-	Stores []storage.Storage
+	sync.RWMutex
+
+	// Stores    []storage.Storage
+	Stores map[string]storage.Storage
 }
 
 var (
@@ -29,6 +33,11 @@ const (
 	WriteTimeout  = 2 * time.Second
 	DeleteTimeout = WriteTimeout
 )
+
+// // NewRedis creates a new Redis DB and checks it's connection
+// func NewRedis(opts *redigo.Options) (Storage, error) {
+// 	return redis.New(opts)
+// }
 
 func waitgroupOrTimeout(timeout time.Duration, wg *sync.WaitGroup, closeChan chan struct{}) {
 	go func() {
@@ -104,6 +113,37 @@ func drainErrs(errChan chan error) (merr *multierror.Error) {
 	ch := chans[chosen]
 	msg := value.String()
 */
+
+/*
+	Have a meta table that has all of the IDs for the DB
+*/
+
+func New(db storage.Storage) (*Store, error) {
+	// var id = v4.String()
+	// if id == "" {
+	// 	// TODO: not sure what to do here
+	// 	return nil,
+	// }
+
+	return &Store{
+		Stores: map[string]storage.Storage{
+			db.ID(): db,
+		},
+	}, nil
+}
+
+// TODO: need to add mutexes into other places
+
+func (s *Store) Add(db storage.Storage) {
+	s.Lock()
+	defers.Unlock()
+
+	if s.Stores[db.ID()] != nil {
+		return
+	}
+
+	s.Stores[db.ID()] = db
+}
 
 // Make:
 //	- GetWithTimeout
@@ -273,90 +313,181 @@ func (s *Store) GetLatestChangelogForObject(id string) (*storage.Changelog, erro
 	return nil, errors.New("Not implemented")
 }
 
-func (s *Store) Audit() error {
-	// Copy the stores incase one is added later on
-	var storesCopy = s.Stores[0:len(s.Stores)]
+func (s *Store) Audit() (map[string]*storage.Changelog, error) {
+	var (
+		wg sync.WaitGroup
 
-	// Iterate over all of the stores multiple times as changelogs are copied back and forth
-	for i := 0; i < len(storesCopy)*len(storesCopy); i++ {
-		// Assume the first store as the master for this iteration
+		// TODO: could run into problems here if one comes up while we are auditing
+		errChan   = make(chan error, len(s.Stores)+10)
+		clMapChan = make(chan map[string]*storage.Changelog, len(s.Stores)+10)
+
+		clMaps = map[string]*storage.Changelog{}
+	)
+
+	// Process all of the changelogs to find an overall unique set
+	go func() {
 		var (
-			master     = storesCopy[0]
-			waitLength time.Duration
+			clMap map[string]*storage.Changelog
+
+			id string
+			cl *storage.Changelog
+
+			mapCL *storage.Changelog
 		)
 
-		// Range over all "slaves" of that master storage
-		for _, slave := range storesCopy[1:] {
-			// Iterate over all the changelogs
-			var clIter, err = master.ChangelogIterator()
-			if err != nil {
-				return err
-			}
+		for clMap = range clMapChan {
+			for id, cl = range clMap {
+				mapCL = clMaps[id]
 
-			var (
-				wg          sync.WaitGroup
-				workerChan  = make(chan struct{}, 100)
-				objectIDMap = map[string]*struct{}{}
-			)
-
-			// While we still have more changelogs ...
-			// TODO: to speed this up we could define a time range, get all changelogs in that
-			// time range and dispatch them
-			for {
-				// Get a changelog
-				var cl, err = clIter.Next()
-				if err != nil {
-					if err == iterator.Done {
-						waitLength = time.Duration((len(objectIDMap) / 1000)) * time.Second
-						break
-					}
-
-					return err
-				}
-
-				// Check if we have already seen this objectID
-				if objectIDMap[cl.ObjectID] != nil {
+				// If that Object ID is not already in the map then just add it and continue on
+				if mapCL == nil {
+					clMap[cl.ObjectID] = cl
 					continue
 				}
 
-				// Mark that we have seen this objectID
-				objectIDMap[cl.ObjectID] = &struct{}{}
+				// If the timestamp is greater than what is already in the map then that is a new timestamp
+				if cl.Timestamp > mapCL.Timestamp {
+					// Overwrite the changelog in the map
+					*mapCL = *cl
+					continue
+				}
+			}
+		}
+	}()
 
-				wg.Add(1)
-				workerChan <- struct{}{}
-				go func() {
-					defer func() {
-						<-workerChan
-						wg.Done()
-					}()
+	// Launch audit for each store asynchronously
+	for _, store := range s.Stores {
+		wg.Add(1)
 
-					var err = processChangelogs(&wg, cl.ObjectID, master, slave)
-					if err != nil {
-						// log
-					}
-				}()
+		go func(store storage.Storage) {
+			defer wg.Done()
+
+			// Tell the store to audit itself
+			var clMap, err = store.Audit()
+			if err != nil {
+				errChan <- err
+				return
 			}
 
-			fmt.Println("i am here waiting")
-
-			wg.Wait()
-		}
-
-		// Ring cycle through the stores
-		storesCopy = append(storesCopy[1:len(storesCopy)], storesCopy[0])
-
-		fmt.Println("Waiting ", waitLength, " to catch up")
-
-		// Sleep for a bit to let the other store catch up with the load before we start again
-		time.Sleep(waitLength)
+			// Put the map into the channel for processing
+			clMapChan <- clMap
+		}(store)
 	}
 
-	return nil
+	// TODO:
+	// reduce down changelogs to just the unique items
+	// have some way to link it back to the original db
+	// if someone needs something then copy over from that db
+
+	// Wait on audit workers
+	wg.Wait()
+
+	// Drain the errors from the channel
+	return clMaps, drainErrs(errChan).ErrorOrNil()
+}
+
+func (s *Store) QuickSync(ctx context.Context, clMap map[string]*storage.Changelog) error {
+	// Loop over all stores and ensure that they have objects that reflect the changelogs
+
+	type objectWithMutex struct {
+		Mutex *sync.Mutex
+		Item  storage.Item
+	}
+
+	// TODO: Should make some kind of expiration time here
+	var (
+		lookupMutex sync.RWMutex
+		objectMap   = map[string]*objectWithMutex{}
+	)
+
+	// TODO: we need to delete changelogs from the map so that they can be reprocessed later
+
+	// For every store
+	for id, store := range s.Stores {
+		go func(id string, store storage.Storage) {
+			// For every changelog
+			for _, cl := range clMap {
+				// Only compare the changelog if it is not from ourself
+				if cl.DBID != id {
+					// Get the item that the changelog refers to
+					var item, err = store.Get(ctx, cl.ObjectID)
+					if err != nil {
+						return
+					}
+
+					// If the object is behind then we need to copy it from where ever the timestamp came from
+					if item.Timestamp() < cl.Timestamp {
+						// Lock the mutex map
+						lookupMutex.Lock()
+
+						// Look up the mutex/item we are looking for
+						var mapItem = objectMap[cl.ObjectID]
+
+						// If we have not seen this item before then create it
+						if mapItem == nil {
+							mapItem = &objectWithMutex{
+								Mutex: &sync.Mutex{},
+							}
+							objectMap[cl.ObjectID] = mapItem
+						}
+
+						// Get our item from the map item
+						var item2 = mapItem.Item
+
+						// Unlock the mutex map
+						lookupMutex.Unlock()
+
+						// Lock the item
+						mapItem.Mutex.Lock()
+
+						// If we haven't cached the object then go get it and cache it
+						if item2 == nil {
+							// Get the object from the changelog source
+							item2, err = s.Stores[cl.DBID].Get(ctx, cl.ObjectID)
+							if err != nil {
+								return
+							}
+
+							// // Lock the mutex map
+							// lookupMutex.Lock()
+
+							// Write the item to the map
+							mapItem.Item = item2
+
+							// // Unlock the mutex map
+							// lookupMutex.Unlock()
+						}
+
+						// // Lock the mutex map
+						// lookupMutex.Lock()
+
+						// Unlock the item
+						mapItem.Mutex.Unlock()
+
+						// // Unlock the mutex map
+						// lookupMutex.Unlock()
+
+						// TODO: add checking against the changelog for the object recieved somehow
+
+						// Upsert the object to the current store
+						err = store.Set(ctx, item2)
+						if err != nil {
+							return
+						}
+					}
+				}
+				// Don't do anything if it is newer right now
+			}
+		}(id, store)
+	}
+
+	// Delete all the changelogs after we are done with them
+	return s.deleteAllChangelogs(clMap)
 }
 
 // Sync attempts to look through all objects of all stores and distribute the most up to date set
 // This should ONLY be run at times when there is low writes
-func (s *Store) Sync() error {
+func (s *Store) Sync(clMap map[string]*storage.Changelog) error {
 	// Copy the stores incase one is added later on
 	var (
 		storesCopy = s.Stores[0:len(s.Stores)]
@@ -372,7 +503,7 @@ func (s *Store) Sync() error {
 		// The assumption at this point is that all errors are non-nil
 		var err error
 		for err = range errChan {
-			multierror.Append(merr, err)
+			merr = multierror.Append(merr, err)
 		}
 	}()
 
@@ -675,6 +806,41 @@ func handleDiff(latest, cl storage.Changelog) int {
 	return 0
 
 	// TODO: implement this
+}
+
+func (s *Store) deleteAllChangelogs(clMap map[string]*storage.Changelog) error {
+	var (
+		dbToCLIDMap = map[string][]string{}
+		wg          sync.WaitGroup
+
+		// errChan = make(chan error, len(s.Stores))
+	)
+
+	// // Fill the map with all the stores so we don't have to check
+	// for _, store := range s.Stores {
+	// 	dbToCLIDMap[store.ID()] = []string{}
+	// }
+
+	for id, cl := range clMap {
+		dbToCLIDMap[cl.DBID] = append(dbToCLIDMap[cl.DBID], id)
+	}
+
+	for id, cls := range dbToCLIDMap {
+		wg.Add(1)
+
+		// Async delete all the changelogs
+		go func(id string, cls []string) {
+			defer wg.Done()
+			var err = s.Stores[id].DeleteChangelogs(cls...)
+			if err != nil {
+				// log
+			}
+		}(id, cls)
+	}
+
+	wg.Wait()
+
+	return nil
 }
 
 // TODO: generically implement store like this and let the other db's be specific resolvers

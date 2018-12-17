@@ -3,7 +3,7 @@ package mongo_test
 import (
 	"testing"
 
-	"github.com/scottshotgg/storage/mongo"
+	"github.com/scottshotgg/storage/impl/mongo"
 	"github.com/scottshotgg/storage/test"
 )
 

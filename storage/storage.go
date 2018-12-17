@@ -5,6 +5,8 @@ import (
 )
 
 type Storage interface {
+	ID() string
+
 	Get(ctx context.Context, id string) (Item, error)
 	GetBy(ctx context.Context, id, op string, value interface{}, limit int) ([]Item, error)
 	GetMulti(ctx context.Context, ids ...string) ([]Item, error)
@@ -28,6 +30,8 @@ type Storage interface {
 	DeleteChangelogs(ids ...string) error
 
 	ChangelogIterator() (ChangelogIter, error)
+
+	Audit() (map[string]*Changelog, error)
 }
 
 type Result struct {

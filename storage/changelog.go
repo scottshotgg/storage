@@ -18,6 +18,7 @@ type Changelog struct {
 	ObjectID  string
 	Type      string
 	Timestamp int64
+	DBID      string
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler

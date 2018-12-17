@@ -6,19 +6,118 @@ import (
 	"fmt"
 
 	redigo "github.com/go-redis/redis"
+	"google.golang.org/api/iterator"
+
+	"github.com/google/uuid"
+	"github.com/scottshotgg/storage/audit"
 	dberrors "github.com/scottshotgg/storage/errors"
 	"github.com/scottshotgg/storage/object"
 	"github.com/scottshotgg/storage/storage"
-	"google.golang.org/api/iterator"
 )
 
 // DB implements Storage from the storage package
 type DB struct {
+	id       string
 	Instance *redigo.Client
 }
 
 type ChangelogIter struct {
-	I *redigo.ScanIterator
+	I  *redigo.ScanIterator
+	DB *DB
+}
+
+func validUUID(id string) bool {
+	var _, err = uuid.Parse(id)
+	if err != nil {
+		// log
+		return false
+	}
+
+	return true
+}
+
+func createMetadata() error {
+	return nil
+}
+
+func initDB(client *redigo.Client) (*DB, error) {
+	/*
+		Things that should be stores in meta:
+		- id
+		- creation date
+		- last connected
+		- keys
+		- maybe db structure
+		- maybe count if we can pull that off
+	*/
+
+	var meta, err = client.HGetAll("__meta__").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	// // TODO:
+	// if len(meta) == 0 {
+	// 	createMetadata()
+	// }
+
+	var id = meta["id"]
+
+	// Parse the UUID to validate that the ID in the database is correct
+	_, err = uuid.Parse(id)
+
+	// If we got an error validating the last ID then regenerate one
+	if err != nil {
+		// log
+		// TODO: somehow the DB does not have an ID
+		// create one
+
+		v4, err := uuid.NewRandom()
+		if err != nil {
+			return nil, err
+		}
+
+		ok, err := client.HSet("__meta__", "id", v4.String()).Result()
+		if err != nil || !ok {
+			// return nil, dberrors.ErrMetaCouldNotBeCreated
+			return nil, errors.New("ErrMetaCouldNotBeCreated")
+		}
+
+		id = v4.String()
+	}
+
+	return &DB{
+		id:       id,
+		Instance: client,
+	}, nil
+}
+
+// Might consider moving these function to another package or into the main package
+
+// New creates a new Redis DB and checks it's connection
+func New(opts *redigo.Options) (*DB, error) {
+	var (
+		client = redigo.NewClient(opts)
+
+		// Check that Redis is connected
+		err = client.Ping().Err()
+	)
+
+	if err != nil {
+		// log
+		return nil, err
+	}
+
+	return initDB(client)
+}
+
+func (db *DB) ID() string {
+	return db.id
+}
+
+// Audit uses the default audit function
+func (db *DB) Audit() (map[string]*storage.Changelog, error) {
+	return audit.Audit(db)
 }
 
 func (db *DB) Get(_ context.Context, id string) (storage.Item, error) {
@@ -259,7 +358,8 @@ func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error
 
 func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
 	return &ChangelogIter{
-		I: db.Instance.HScan("changelog", 0, "", 1000000).Iterator(),
+		DB: db,
+		I:  db.Instance.HScan("changelog", 0, "", 1000000).Iterator(),
 	}, nil
 }
 
@@ -284,15 +384,15 @@ func (i *ChangelogIter) Next() (*storage.Changelog, error) {
 		return nil, err
 	}
 
-	var (
-		cl storage.Changelog
-	)
+	var cl = storage.Changelog{
+		DBID: i.DB.ID(),
+	}
 
 	return &cl, cl.UnmarshalBinary([]byte(i.I.Val()))
 }
 
 func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
-	keys, _, err := db.Instance.HScan("changelog", 0, id+"-*", 1000000).Result()
+	var keys, _, err = db.Instance.HScan("changelog", 0, id+"-*", 1000000).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -311,8 +411,15 @@ func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error)
 			continue
 		}
 
-		var cl = &storage.Changelog{}
-		cl.UnmarshalBinary([]byte(keys[i]))
+		var cl = &storage.Changelog{
+			DBID: db.ID(),
+		}
+
+		err = cl.UnmarshalBinary([]byte(keys[i]))
+		if err != nil {
+			// log
+			continue
+		}
 
 		changelogs = append(changelogs, *cl)
 	}
@@ -378,7 +485,7 @@ func findLatestTS(clValues []storage.Changelog) *storage.Changelog {
 // TODO: implement changelog stuff for redis
 
 func (db *DB) GetChangelogsForObject(id string) ([]storage.Changelog, error) {
-	keys, _, err := db.Instance.HScan("changelog", 0, id+"-*", 1000000).Result()
+	var keys, _, err = db.Instance.HScan("changelog", 0, id+"-*", 1000000).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -390,8 +497,15 @@ func (db *DB) GetChangelogsForObject(id string) ([]storage.Changelog, error) {
 			continue
 		}
 
-		var cl = &storage.Changelog{}
-		cl.UnmarshalBinary([]byte(keys[i]))
+		var cl = &storage.Changelog{
+			DBID: db.ID(),
+		}
+
+		err = cl.UnmarshalBinary([]byte(keys[i]))
+		if err != nil {
+			// log
+			continue
+		}
 
 		changelogs = append(changelogs, *cl)
 	}

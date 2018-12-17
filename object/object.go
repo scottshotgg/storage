@@ -144,7 +144,7 @@ func (o *Object) MarshalBinary() (data []byte, err error) {
 		Id:        o.ID(),
 		Value:     o.Value(),
 		Timestamp: o.Timestamp(),
-		// Keys: // HOW TO DO THIS
+		// Keys:      o.Keys(),
 	})
 }
 

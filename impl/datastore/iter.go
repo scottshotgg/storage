@@ -10,7 +10,7 @@ import (
 )
 
 type Iter struct {
-	I *dstore.Iterator
+	I *dstorage.Iterator
 }
 
 func (db *DB) Iterator() (storage.Iter, error) {

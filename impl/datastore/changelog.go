@@ -3,12 +3,11 @@ package datastore
 import (
 	"context"
 
-	dstore "cloud.google.com/go/datastore"
 	"github.com/scottshotgg/storage/storage"
 )
 
 type ChangelogIter struct {
-	I *dstore.Iterator
+	I *dstorage.Iterator
 }
 
 func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {

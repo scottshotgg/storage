@@ -4,17 +4,17 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/scottshotgg/storage/store"
+	"github.com/scottshotgg/storage/storage"
 )
 
 type DB struct {
 	Instance sync.Map
 }
 
-func (db *DB) Get(id string) (store.Item, error) {
+func (db *DB) Get(id string) (storage.Item, error) {
 	value, _ := db.Instance.Load(id)
 
-	itemValue, ok := value.(store.Item)
+	itemValue, ok := value.(storage.Item)
 	if !ok {
 		return nil, errors.New("WTF")
 	}
@@ -22,21 +22,21 @@ func (db *DB) Get(id string) (store.Item, error) {
 	return itemValue, nil
 }
 
-func (db *DB) Set(id string, i store.Item) error {
+func (db *DB) Set(id string, i storage.Item) error {
 	db.Instance.Store(id, i)
 
 	return nil
 }
 
-func (db *DB) Iterator() (store.Iter, error) {
+func (db *DB) Iterator() (storage.Iter, error) {
 	return nil, errors.New("Not implemented")
 }
 
 type Iter struct {
-	// I *dstore.Iterator
+	// I *dstorage.Iterator
 }
 
-// func (i *Iter) Next() (store.Item, error) {
+// func (i *Iter) Next() (storage.Item, error) {
 // 	var s pb.Item
 
 // 	_, err := i.I.Next(&s)
