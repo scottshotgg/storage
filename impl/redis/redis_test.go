@@ -225,3 +225,46 @@ func TestAudit(t *testing.T) {
 
 	fmt.Println("len of cls", len(cls))
 }
+
+func TestConcurrentMap(t *testing.T) {
+	type objectWithMutex struct {
+		sync.Mutex
+		Item storage.Item
+	}
+
+	var (
+		lookupMutex sync.Mutex
+		objectMap   = map[string]*objectWithMutex{
+			"something": &objectWithMutex{
+				Item: object.New("wtf", []byte("wtf"), nil),
+			},
+		}
+	)
+
+	go func() {
+		for {
+			fmt.Println("map", objectMap["something"].Item.ID())
+		}
+	}()
+
+	for i := 0; i < 10; i++ {
+		go func(i int) {
+			lookupMutex.Lock()
+			var thing = objectMap["something"]
+			lookupMutex.Unlock()
+
+			for {
+				// fmt.Println("trying")
+
+				thing.Lock()
+				// fmt.Println("thing", thing.Item.ID())
+				thing.Item = object.New(fmt.Sprintf("wtf%d", i), []byte("wtf"), nil)
+				thing.Unlock()
+
+				// fmt.Println("success")
+			}
+		}(i)
+	}
+
+	time.Sleep(5 * time.Second)
+}

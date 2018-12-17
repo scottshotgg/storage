@@ -389,14 +389,15 @@ func (s *Store) Audit() (map[string]*storage.Changelog, error) {
 func (s *Store) QuickSync(ctx context.Context, clMap map[string]*storage.Changelog) error {
 	// Loop over all stores and ensure that they have objects that reflect the changelogs
 
+	// Make a mutex map
 	type objectWithMutex struct {
-		Mutex *sync.Mutex
-		Item  storage.Item
+		sync.Mutex
+		Item storage.Item
 	}
 
 	// TODO: Should make some kind of expiration time here
 	var (
-		lookupMutex sync.RWMutex
+		lookupMutex sync.Mutex
 		objectMap   = map[string]*objectWithMutex{}
 	)
 
@@ -425,20 +426,18 @@ func (s *Store) QuickSync(ctx context.Context, clMap map[string]*storage.Changel
 
 						// If we have not seen this item before then create it
 						if mapItem == nil {
-							mapItem = &objectWithMutex{
-								Mutex: &sync.Mutex{},
-							}
-							objectMap[cl.ObjectID] = mapItem
+							mapItem = &objectWithMutex{}
+							// objectMap[cl.ObjectID] = mapItem
 						}
-
-						// Get our item from the map item
-						var item2 = mapItem.Item
 
 						// Unlock the mutex map
 						lookupMutex.Unlock()
 
 						// Lock the item
-						mapItem.Mutex.Lock()
+						mapItem.Lock()
+
+						// Get our item from the map item after we finally get a lock
+						var item2 = mapItem.Item
 
 						// If we haven't cached the object then go get it and cache it
 						if item2 == nil {
@@ -448,24 +447,12 @@ func (s *Store) QuickSync(ctx context.Context, clMap map[string]*storage.Changel
 								return
 							}
 
-							// // Lock the mutex map
-							// lookupMutex.Lock()
-
 							// Write the item to the map
 							mapItem.Item = item2
-
-							// // Unlock the mutex map
-							// lookupMutex.Unlock()
 						}
 
-						// // Lock the mutex map
-						// lookupMutex.Lock()
-
 						// Unlock the item
-						mapItem.Mutex.Unlock()
-
-						// // Unlock the mutex map
-						// lookupMutex.Unlock()
+						mapItem.Unlock()
 
 						// TODO: add checking against the changelog for the object recieved somehow
 
