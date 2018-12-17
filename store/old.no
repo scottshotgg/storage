@@ -79,3 +79,90 @@ func (s *Store) Audit() error {
 
 	return nil
 }
+
+
+
+
+
+
+
+
+func (s *Store) QuickSync(ctx context.Context, clMap map[string]*storage.Changelog) error {
+	// Loop over all stores and ensure that they have objects that reflect the changelogs
+
+	// Make a mutex map
+	type objectWithMutex struct {
+		sync.Mutex
+		Item storage.Item
+	}
+
+	// TODO: Should make some kind of expiration time here
+	var (
+		lookupMutex sync.Mutex
+		objectMap   = map[string]*objectWithMutex{}
+	)
+
+	// TODO: we need to delete changelogs from the map so that they can be reprocessed later
+
+	// For every store
+	for id, store := range s.Stores {
+		go func(id string, store storage.Storage) {
+			// For every changelog
+			for _, cl := range clMap {
+				// Only compare the changelog if it is not from ourself
+				if cl.DBID != id {
+					// Get the item that the changelog refers to
+					var item, err = store.Get(ctx, cl.ObjectID)
+					if err != nil {
+						return
+					}
+
+					// If the object is behind then we need to copy it from where ever the timestamp came from
+					if item.Timestamp() < cl.Timestamp {
+						// Lock the mutex map
+						lookupMutex.Lock()
+
+						// Look up the mutex/item we are looking for
+						var mapItem = objectMap[cl.ObjectID]
+
+						// If we have not seen this item before then create it
+						if mapItem == nil {
+							mapItem = &objectWithMutex{}
+							// objectMap[cl.ObjectID] = mapItem
+						}
+
+						// Unlock the mutex map
+						lookupMutex.Unlock()
+
+						// Lock the item
+						mapItem.Lock()
+
+						// If we haven't cached the object then go get it and cache it
+						if mapItem.Item == nil {
+							// Get the object from the changelog source
+							mapItem.Item, err = s.Stores[cl.DBID].Get(ctx, cl.ObjectID)
+							if err != nil {
+								return
+							}
+						}
+
+						// Unlock the item
+						mapItem.Unlock()
+
+						// TODO: add checking against the changelog for the object recieved somehow
+
+						// Upsert the object to the current store
+						err = store.Set(ctx, mapItem.Item)
+						if err != nil {
+							return
+						}
+					}
+				}
+				// Don't do anything if it is newer right now
+			}
+		}(id, store)
+	}
+
+	// Delete all the changelogs after we are done with them
+	return s.deleteAllChangelogs(clMap)
+}
