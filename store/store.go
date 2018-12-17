@@ -300,7 +300,6 @@ func (s *Store) Next() (item storage.Item, err error) {
 func (s *Store) Iterator() (storage.Iter, error) {
 	// create iterators for all the stores
 	return nil, errors.New("Not implemented")
-
 }
 
 func (s *Store) ChangelogIterator() (storage.ChangelogIter, error) {ync over all stores here and wait with a channel for the first one
@@ -476,7 +475,7 @@ func (s *Store) QuickSync() error {
 }
 
 // Sync attempts to look through all objects of all stores and distribute the most up to date set
-// This should ONLY be run at times when there is low writes
+// This should really only be run at times when there is low writes
 func (s *Store) Sync(clMap map[string]*storage.Changelog) error {
 	var (
 		storesCopy []storage.Storage
