@@ -136,7 +136,7 @@ func New(db storage.Storage) (*Store, error) {
 
 func (s *Store) Add(db storage.Storage) {
 	s.Lock()
-	defers.Unlock()
+	s.Unlock()
 
 	if s.Stores[db.ID()] != nil {
 		return
@@ -302,10 +302,13 @@ func (s *Store) Iterator() (storage.Iter, error) {
 	return nil, errors.New("Not implemented")
 }
 
-func (s *Store) ChangelogIterator() (storage.ChangelogIter, error) {ync over all stores here and wait with a channel for the first one
+func (s *Store) ChangelogIterator() (storage.ChangelogIter, error) {
 	return nil, errors.New("Not implemented")
 }
 
+/*
+	return ALL changelogs, make QuickSync find the exclusives and then sort and delete
+*/
 func (s *Store) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
 	// Async over all stores here and wait with a channel for the first one
 	return nil, errors.New("Not implemented")
@@ -327,28 +330,49 @@ func (s *Store) Audit() (map[string]*storage.Changelog, error) {
 		var (
 			clMap map[string]*storage.Changelog
 
-			id string
+			// id string
 			cl *storage.Changelog
 
-			mapCL *storage.Changelog
+			// mapCL *storage.Changelog
 		)
 
+		// for clMap = range clMapChan {
+		// 	for id, cl = range clMap {
+		// 		mapCL = clMaps[id]
+
+		// 		// If that Object ID is not already in the map then just add it and continue on
+		// 		if mapCL == nil {
+		// 			clMap[cl.ObjectID] = cl
+		// 			continue
+		// 		}
+
+		// 		// If the timestamp is greater than what is already in the map then that is a new timestamp
+		// 		if cl.Timestamp > mapCL.Timestamp {
+		// 			// Overwrite the changelog in the map
+		// 			*mapCL = *cl
+		// 			continue
+		// 		}
+		// 	}
+		// }
+
+		// Just add all of the changelogs together, keyed by changelog ID instead of object ID
 		for clMap = range clMapChan {
-			for id, cl = range clMap {
-				mapCL = clMaps[id]
+			for _, cl = range clMap {
+				// mapCL = clMaps[cl.ID]
+				clMap[cl.ID] = cl
 
-				// If that Object ID is not already in the map then just add it and continue on
-				if mapCL == nil {
-					clMap[cl.ObjectID] = cl
-					continue
-				}
+				// // If that Object ID is not already in the map then just add it and continue on
+				// if mapCL == nil {
+				// 	clMap[cl.ObjectID] = cl
+				// 	continue
+				// }
 
-				// If the timestamp is greater than what is already in the map then that is a new timestamp
-				if cl.Timestamp > mapCL.Timestamp {
-					// Overwrite the changelog in the map
-					*mapCL = *cl
-					continue
-				}
+				// // If the timestamp is greater than what is already in the map then that is a new timestamp
+				// if cl.Timestamp > mapCL.Timestamp {
+				// 	// Overwrite the changelog in the map
+				// 	*mapCL = *cl
+				// 	continue
+				// }
 			}
 		}
 	}()
@@ -392,9 +416,9 @@ func (s *Store) QuickSync() error {
 		return err
 	}
 
-	// Copy the stores incase one is added later on
 	var storesCopy []storage.Storage
 
+	// Copy the stores incase one is added later on
 	for _, store := range s.Stores {
 		storesCopy = append(storesCopy, store)
 	}
@@ -474,6 +498,161 @@ func (s *Store) QuickSync() error {
 	return nil
 }
 
+// Maybe we should make an AuditFrom ...
+
+func (s *Store) QuickSyncWith() error {
+	// Audit every store first to reduce the number of changelogs we have to look through
+	// clMap will contain ALL unique changelogs from ALL stores
+	var clMap, err = s.Audit()
+	if err != nil {
+		// log
+		return err
+	}
+
+	var (
+		uniqueCLs = map[string]*storage.Changelog{}
+		deleteCLs = map[string]*storage.Changelog{}
+		// storesCopy []storage.Storage
+
+		mapCL *storage.Changelog
+	)
+
+	// Iterate over all of the unique changelogs from all of the stores
+	for _, cl := range clMap {
+		mapCL = uniqueCLs[cl.ObjectID]
+
+		// If that Object ID is not already in the map then just add it and continue on
+		if mapCL == nil {
+			uniqueCLs[cl.ObjectID] = cl
+			continue
+		}
+
+		// If the timestamp is greater than what is already in the map then that is a new timestamp
+		if cl.Timestamp > mapCL.Timestamp {
+			// Queue the old changelog from the map for deletion
+			deleteCLs[mapCL.ID] = mapCL
+
+			// Overwrite the changelog in the map
+			*mapCL = *cl
+			continue
+		}
+
+		// Queue that changelog for deletion
+		deleteCLs[cl.ID] = cl
+	}
+
+	// Just delete them all at the end
+	// need to fix this
+	defer func() {
+		// put an if check here
+		var err = s.deleteAllChangelogs(deleteCLs)
+		if err != nil {
+			// log
+			// Need to put something here to not delete this changelog
+		}
+	}()
+
+	const (
+		// Only allow 1000 total workers
+		totalWorkerAmount = 1000
+
+		// // Calculate the amount of workers that will be allocated to each store
+		// storeWorkerAmount / len(s.Stores)
+	)
+
+	var (
+		wg sync.WaitGroup
+		// workerChanMap = map[string]chan struct{}{}
+		workerChan = make(chan struct{}, totalWorkerAmount)
+
+		// Cache the items as we go through the stores
+		// Consider doing a time.After to clear this
+		itemCacheMap = map[string]storage.Item{}
+	)
+
+	// Process the changelogs for each store
+	for dbID, store := range s.Stores {
+		// Declare a context for each store
+		var ctx = context.Background()
+		wg.Add(1)
+
+		// go func(ctx context.Context, dbID string, store storage.Storage) {
+		// 	defer wg.Done()
+
+		// Iterate over all of the unique changelogs
+		for _, cl := range uniqueCLs {
+			// Don't check against ourselves... for now
+			if cl.DBID == dbID {
+				continue
+			}
+
+			wg.Add(1)
+			workerChan <- struct{}{}
+
+			// Go func each retrieval
+			go func(cl *storage.Changelog) {
+				defer func() {
+					wg.Done()
+					<-workerChan
+				}()
+
+				// Get the item from the store we are comparing against
+				var item, err = store.Get(ctx, cl.ObjectID)
+				if err != nil {
+					// log
+					// Need to put something here to not delete this changelog
+					return
+				}
+
+				// If the item that we got is older than the changelog for that item
+				// then go get the item from the store that recorded the changelog
+				if item.Timestamp() < cl.Timestamp {
+					// Check the cache for the item
+					item = itemCacheMap[cl.ObjectID]
+
+					// If the item is nil then the item needs to be cached
+					if item == nil {
+						// Get the item to be cached from the store that recorded the changelog
+						item, err = s.Stores[cl.DBID].Get(ctx, cl.ObjectID)
+						if err != nil {
+							// log
+							// Need to put something here to not delete this changelog
+							// This is BAD
+							return
+						}
+
+						// Set the item in the cache
+						itemCacheMap[cl.ObjectID] = item
+					}
+
+					// Compare for the item that we got back to the changelog for good measure
+					// The item timestamp SHOULD be either:
+					//	1) the same if the item has not changed in the meantime
+					//	2) greater than if the item has, in which case we will still copy it
+					if item.Timestamp() < cl.Timestamp {
+						// wtf
+						// Could put something here to check the two object against each other...
+						return
+					}
+
+					// Might consider checking here right before upserting to it
+					err = store.Set(ctx, item)
+					if err != nil {
+						// log
+						// Need to put something here to not delete this changelog
+						return
+					}
+				}
+			}(cl)
+			// Don't do anything if it's newer than the timestamp
+		}
+		// }(ctx, dbID, store)
+	}
+
+	// Just for now
+	return nil
+}
+
 // Sync attempts to look through all objects of all stores and distribute the most up to date set
 // This should really only be run at times when there is low writes
 func (s *Store) Sync() error {
@@ -487,8 +666,8 @@ func (s *Store) Sync() error {
 
 		merr *multierror.Error
 	)
-	
-		// Copy the stores incase one is added later on
+
+	// Copy the stores incase one is added later on
 	for _, store := range s.Stores {
 		storesCopy = append(storesCopy, store)
 	}
@@ -839,6 +1018,7 @@ func (s *Store) deleteAllChangelogs(clMap map[string]*storage.Changelog) error {
 		// Async delete all the changelogs
 		go func(id string, cls []string) {
 			defer wg.Done()
+
 			var err = s.Stores[id].DeleteChangelogs(cls...)
 			if err != nil {
 				// log
