@@ -476,7 +476,7 @@ func (s *Store) QuickSync() error {
 
 // Sync attempts to look through all objects of all stores and distribute the most up to date set
 // This should really only be run at times when there is low writes
-func (s *Store) Sync(clMap map[string]*storage.Changelog) error {
+func (s *Store) Sync() error {
 	var (
 		storesCopy []storage.Storage
 

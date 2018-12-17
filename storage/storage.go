@@ -32,6 +32,8 @@ type Storage interface {
 	ChangelogIterator() (ChangelogIter, error)
 
 	Audit() (map[string]*Changelog, error)
+	QuickSync() error
+	Sync() error
 }
 
 type Result struct {

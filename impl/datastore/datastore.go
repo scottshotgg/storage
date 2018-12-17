@@ -34,6 +34,16 @@ func (db *DB) Audit() (map[string]*storage.Changelog, error) {
 	return audit.Audit(db)
 }
 
+// QuickSync doesn't make sense in a single DB context but is here to satisfy the interface
+func (db *DB) QuickSync() error {
+	return nil
+}
+
+// Sync doesn't make sense in a single DB context but is here to satisfy the interface
+func (db *DB) Sync() error {
+	return nil
+}
+
 func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	var (
 		props dstore.PropertyList
