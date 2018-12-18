@@ -8,6 +8,7 @@ require (
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/uuid v1.1.0
 	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
+	github.com/grpc-ecosystem/grpc-gateway v1.6.2 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/mongodb/mongo-go-driver v0.1.0

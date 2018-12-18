@@ -34,6 +34,18 @@ func FromProto(i *pb.Item) *Object {
 	}
 }
 
+func (o *Object) ToProto() *pb.Item {
+	if o == nil {
+		return &pb.Item{}
+	}
+
+	return &pb.Item{
+		Id:        o.ID(),
+		Value:     o.Value(),
+		Timestamp: o.Timestamp(),
+	}
+}
+
 func FromResult(res *storage.Result) *Object {
 	return &Object{
 		id:        res.Item.ID(),

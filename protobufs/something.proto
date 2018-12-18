@@ -1,6 +1,123 @@
 syntax = "proto3";
 option go_package = "protobuf";
 
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+import "google/protobuf/any.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  info: {
+    title: "storage";
+    version: "0.0.1";
+  };
+
+  schemes: HTTPS;
+  host: "geosearch.endpoints.phdigidev.cloud.goog";
+  consumes: "application/json";
+  produces: "application/json";
+
+  security_definitions: {
+    security: {
+      key: "firebase";
+      value: {
+        type: TYPE_OAUTH2,
+        in: IN_HEADER
+        description: "Used to authenticate Firebase",
+        flow: FLOW_IMPLICIT,
+        authorization_url: "https://securetoken.google.com/phdigidev"
+      };
+    }
+  }
+  security: [
+    {
+      security_requirement: {
+        key: "firebase";
+        value: {};
+      }
+    }
+  ]
+};
+
+service Storage {
+  rpc Get(GetReq) returns (GetRes) {
+    option (google.api.http) = {
+      get: "/v1/get/{itemID}"
+    };
+  }
+
+  rpc GetBy(GetByReq) returns (GetByRes) {
+    option (google.api.http) = {
+      post: "/v1/getby"
+      body: "*"
+    };
+  }
+
+  rpc GetMulti(GetMultiReq) returns (GetMultiRes) {
+    option (google.api.http) = {
+      post: "/v1/multi/get"
+      body: "*"
+    };
+  }
+
+  rpc GetAll(GetAllReq) returns (stream GetAllRes) {
+    option (google.api.http) = {
+      get: "/v1/getall"
+    };
+  }
+
+  rpc Set(SetReq) returns (SetRes) {
+    option (google.api.http) = {
+      post: "/v1/set"
+      body: "*"
+    };
+  }
+
+  rpc SetMulti(SetMultiReq) returns (SetMultiRes) {
+    option (google.api.http) = {
+      post: "/v1/multi/set"
+      body: "*"
+    };
+  }
+
+  rpc Delete(DeleteReq) returns (DeleteRes) {
+    option (google.api.http) = {
+      delete: "/v1/delete"
+      body: "*"
+    };
+  }
+
+  rpc Iterator(IteratorReq) returns (stream IteratorRes) {
+    option (google.api.http) = {
+      get: "/v1/iterator"
+    };
+  }
+
+  rpc IteratorBy(IteratorByReq) returns (stream IteratorByRes) {
+    option (google.api.http) = {
+      post: "/v1/iteratorby"
+      body: "*"
+    };
+  }
+
+  rpc Audit(AuditReq) returns (AuditRes) {
+    option (google.api.http) = {
+      get: "/v1/audit"
+    };
+  }
+
+  rpc QuickSync(QuickSyncReq) returns (QuickSyncRes) {
+    option (google.api.http) = {
+      get: "/v1/quicksync"
+    };
+  }
+
+  rpc Sync(SyncReq) returns (SyncRes) {
+    option (google.api.http) = {
+      get: "/v1/sync"
+    };
+  }
+}
+
 message Item {
   string id = 1;
   bytes value = 2;
@@ -10,5 +127,142 @@ message Item {
 message Changelog {
   string id = 1;
   int64 timestamp = 2;
-  string objectID = 3;
+  string itemID = 3;
+}
+
+message Res {
+  int64 status = 1;
+  string description = 2;
+}
+
+// ID
+message IDReq {}
+
+message IDRes {
+  int64 status = 1;
+  string description = 2;
+  string id = 3;
+}
+
+// Get
+message GetReq {
+  string itemID = 1;
+}
+
+message GetRes {
+  int64 status = 1;
+  string description = 2;
+  Item item = 3;
+}
+
+// GetBy
+message GetByReq {
+  string key = 1;
+  string op = 2;
+  // google.protobuf.Any value = 3;
+  bytes value = 3;
+  int64 limit = 4;
+}
+
+message GetByRes {
+  int64 status = 1;
+  string description = 2;
+  repeated Item items = 3;
+}
+
+// GetMulti
+message GetMultiReq {
+  repeated string ids = 1;
+}
+
+message GetMultiRes {
+  int64 status = 1;
+  string description = 2;
+  repeated Item items = 3;
+}
+
+// GetAll - this should reeeeeaaallly be a stream
+message GetAllReq {}
+
+message GetAllRes {
+  int64 status = 1;
+  string description = 2;
+  repeated Item items = 3;
+}
+
+// Set
+message SetReq {
+  Item item = 1;
+}
+
+message SetRes {
+  int64 status = 1;
+  string description = 2;
+}
+
+// SetMulti
+message SetMultiReq {
+  repeated Item items = 1;
+}
+
+message SetMultiRes {
+  int64 status = 1;
+  string description = 2;
+}
+
+// Delete
+message DeleteReq {
+  string id = 1;
+}
+
+message DeleteRes {
+  int64 status = 1;
+  string description = 2;
+}
+
+// Iterator - this should reeeeaaallly be a stream
+message IteratorReq {}
+
+message IteratorRes {
+  int64 status = 1;
+  string description = 2;
+  repeated Item items = 3;
+}
+
+// IteratorBy - this should reeeeaaallly be a stream
+message IteratorByReq {
+  string key = 1;
+  string op = 2;
+  bytes value = 3;
+}
+
+message IteratorByRes {
+  int64 status = 1;
+  string description = 2;
+  repeated Item items = 3;
+}
+
+// Audit
+message AuditReq {}
+
+message AuditRes {
+  int64 status = 1;
+  string description = 2;
+  map<string, google.protobuf.Any> changelogs = 3;
+}
+
+// QuickSync
+message QuickSyncReq {}
+
+message QuickSyncRes {
+  int64 status = 1;
+  string description = 2;
+}
+
+// Sync
+message SyncReq {}
+
+message SyncRes {
+  int64 status = 1;
+  string description = 2;
 }

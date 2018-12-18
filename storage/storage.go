@@ -8,8 +8,8 @@ type Storage interface {
 	ID() string
 
 	Get(ctx context.Context, id string) (Item, error)
-	GetBy(ctx context.Context, id, op string, value interface{}, limit int) ([]Item, error)
-	GetMulti(ctx context.Context, ids ...string) ([]Item, error)
+	GetBy(ctx context.Context, key, op string, value interface{}, limit int) ([]Item, error)
+	GetMulti(ctx context.Context, ids []string) ([]Item, error)
 	GetAll(ctx context.Context) ([]Item, error)
 
 	Set(ctx context.Context, item Item) error
