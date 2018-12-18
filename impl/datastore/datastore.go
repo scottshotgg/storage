@@ -214,31 +214,29 @@ func (db *DB) Set(ctx context.Context, i storage.Item) error {
 	var (
 		key = dstore.Key{
 			Kind:      "something",
-			Name:      i.ID(),
+			Name:      i.GetID(),
 			Namespace: db.Instance.Namespace(),
 		}
 
+		// Not sure if adding these keys is necessary
 		props = dstore.PropertyList{
 			dstore.Property{
 				Name:  "id",
-				Value: i.ID(),
+				Value: i.GetID(),
 			},
 			dstore.Property{
 				Name:  "timestamp",
-				Value: i.Timestamp(),
+				Value: i.GetTimestamp(),
 			},
 			dstore.Property{
 				Name:  "value",
-				Value: i.Value(),
+				Value: i.GetValue(),
 			},
 		}
 	)
 
-	for k, v := range i.Keys() {
-		if v == nil {
-			continue
-		}
-
+	// TODO: Need to fix the keys stuff
+	for k := range i.GetKeys() {
 		props = append(props, dstore.Property{
 			Name:  k,
 			Value: v,
