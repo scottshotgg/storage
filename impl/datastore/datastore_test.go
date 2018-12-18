@@ -84,7 +84,7 @@ func TestGetBy(t *testing.T) {
 		t.Fatalf("err %+v:", err)
 	}
 
-	fmt.Printf("Items: %+v\nLength: %d\n", items, len(items))
+	log.Printf("Items: %+v\nLength: %d\n", items, len(items))
 }
 
 func TestGetMulti(t *testing.T) {

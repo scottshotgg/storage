@@ -12,7 +12,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   };
 
   schemes: HTTPS;
-  host: "geosearch.endpoints.phdigidev.cloud.goog";
+  host: ".endpoints.phdigidev.cloud.goog";
   consumes: "application/json";
   produces: "application/json";
 

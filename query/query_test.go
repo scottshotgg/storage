@@ -3,6 +3,7 @@ package query_test
 import (
 	"context"
 	"fmt"
+	"log"
 	"testing"
 	"time"
 
@@ -57,5 +58,5 @@ func TestNew(t *testing.T) {
 		t.Fatalf("err: %+v", q.Err())
 	}
 
-	fmt.Printf("results %+v\n", results)
+	log.Printf("results %+v\n", results)
 }

@@ -102,13 +102,13 @@ func TestGet(t *testing.T) {
 
 	<-doneChan
 
-	fmt.Printf("len %d\n", len(items))
+	log.Printf("len %d\n", len(items))
 }
 
 func TestGetAll(t *testing.T) {
 	var items, err = test.DB.GetAll(context.Background())
 	if err != nil {
-		fmt.Printf("err %+v\n", err)
+		log.Printf("err %+v\n", err)
 	}
 
 	fmt.Println("items len", len(items))
@@ -149,7 +149,7 @@ func TestSetMulti(t *testing.T) {
 
 	var err = test.DB.SetMulti(context.Background(), ifaces)
 	if err != nil {
-		fmt.Printf("err %+v\n", err)
+		log.Printf("err %+v\n", err)
 	}
 
 	fmt.Println("upload finished")
