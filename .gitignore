@@ -3,3 +3,6 @@
 
 # Hide CircleCI for now
 .circleci
+
+# fk u apple
+.DS_Store
