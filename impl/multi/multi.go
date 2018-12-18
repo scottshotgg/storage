@@ -1,4 +1,4 @@
-package store
+package multi
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 )
 
 // Store implements Storage with helpers and some ochestration
-type Store struct {
+type DB struct {
 	sync.RWMutex
 
 	// Stores    []storage.Storage
@@ -134,7 +134,7 @@ func New(db storage.Storage) (*Store, error) {
 
 // TODO: need to add mutexes into other places
 
-func (s *Store) Add(db storage.Storage) {
+func (db *DB) Add(db storage.Storage) {
 	s.Lock()
 	s.Unlock()
 
@@ -149,7 +149,7 @@ func (s *Store) Add(db storage.Storage) {
 //	- GetWithTimeout
 //	- GetAsync
 //	- do something with/for streams
-func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
+func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	// We only _need_ a channel of size 1 but making it the len of all the
 	// stores ensures that we don't block on writing
 	ctx, cancelFunc := context.WithCancel(ctx)
@@ -200,7 +200,7 @@ func (s *Store) Get(ctx context.Context, id string) (storage.Item, error) {
 	}
 }
 
-func (s *Store) Set(ctx context.Context, i storage.Item) error {
+func (db *DB) Set(ctx context.Context, i storage.Item) error {
 	var (
 		wg        sync.WaitGroup
 		errChan   = make(chan error, len(s.Stores))
@@ -230,7 +230,7 @@ func (s *Store) Set(ctx context.Context, i storage.Item) error {
 	return drainErrs(errChan)
 }
 
-func (s *Store) Delete(id string) error {
+func (db *DB) Delete(id string) error {
 	var (
 		wg        sync.WaitGroup
 		errChan   = make(chan error, len(s.Stores))
@@ -261,11 +261,11 @@ func (s *Store) Delete(id string) error {
 	return drainErrs(errChan)
 }
 
-func (s *Store) Next() (item storage.Item, err error) {
+func (db *DB) Next() (item storage.Item, err error) {
 	return nil, errors.New("Not implemented")
 }
 
-// func (s *Store) Next() (item storage.Item, err error) {
+// func (db *DB) Next() (item storage.Item, err error) {
 // 	var resChan = make(chan *storage.Result, len(s.Stores))
 
 // 	for _, store := range s.Stores {
@@ -297,24 +297,24 @@ func (s *Store) Next() (item storage.Item, err error) {
 // 	return item, err
 // }
 
-func (s *Store) Iterator() (storage.Iter, error) {
+func (db *DB) Iterator() (storage.Iter, error) {
 	// create iterators for all the stores
 	return nil, errors.New("Not implemented")
 }
 
-func (s *Store) ChangelogIterator() (storage.ChangelogIter, error) {
+func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
 	return nil, errors.New("Not implemented")
 }
 
 /*
 	return ALL changelogs, make QuickSync find the exclusives and then sort and delete
 */
-func (s *Store) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
+func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
 	// Async over all stores here and wait with a channel for the first one
 	return nil, errors.New("Not implemented")
 }
 
-func (s *Store) Audit() (map[string]*storage.Changelog, error) {
+func (db *DB) Audit() (map[string]*storage.Changelog, error) {
 	var (
 		wg sync.WaitGroup
 
@@ -408,7 +408,7 @@ func (s *Store) Audit() (map[string]*storage.Changelog, error) {
 	return clMaps, drainErrs(errChan).ErrorOrNil()
 }
 
-func (s *Store) QuickSync() error {
+func (db *DB) QuickSync() error {
 	// Audit every store first to reduce the number of changelogs we have to look through
 	var _, err = s.Audit()
 	if err != nil {
@@ -500,7 +500,7 @@ func (s *Store) QuickSync() error {
 
 // Maybe we should make an AuditFrom ...
 
-func (s *Store) QuickSyncWith() error {
+func (db *DB) QuickSyncWith() error {
 	// Audit every store first to reduce the number of changelogs we have to look through
 	// clMap will contain ALL unique changelogs from ALL stores
 	var clMap, err = s.Audit()
@@ -658,7 +658,7 @@ func (s *Store) QuickSyncWith() error {
 
 // Sync attempts to look through all objects of all stores and distribute the most up to date set
 // This should really only be run at times when there is low writes
-func (s *Store) Sync() error {
+func (db *DB) Sync() error {
 	var (
 		storesCopy []storage.Storage
 
@@ -998,7 +998,7 @@ func handleDiff(latest, cl storage.Changelog) int {
 	// TODO: implement this
 }
 
-func (s *Store) deleteAllChangelogs(clMap map[string]*storage.Changelog) error {
+func (db *DB) deleteAllChangelogs(clMap map[string]*storage.Changelog) error {
 	var (
 		dbToCLIDMap = map[string][]string{}
 		wg          sync.WaitGroup
@@ -1035,7 +1035,7 @@ func (s *Store) deleteAllChangelogs(clMap map[string]*storage.Changelog) error {
 }
 
 // TODO: generically implement store like this and let the other db's be specific resolvers
-// func (s *Store) Getq(q *query.Query) error {
+// func (db *DB) Getq(q *query.Query) error {
 // 	if q == nil {
 // 		return errors.New("nil query")
 // 	}

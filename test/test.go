@@ -32,9 +32,10 @@ const (
 )
 
 var (
+	DB storage.Storage
+
 	WorkerChan = make(chan struct{}, WorkerLimit)
-	DB         storage.Storage
-	Objs       []*object.Object
+	Objs       = make([]*object.Object, AmountOfTests)
 
 	Testeroonis = []Test{
 		Test{
@@ -48,19 +49,25 @@ var (
 )
 
 func init() {
+	var (
+		bytes []byte
+		err   error
+	)
+
 	for i := 0; i < AmountOfTests; i++ {
 		// Convert your custom object to binary first
 		// Use JSON for ease
 		Testeroonis[0].I = i
 		Testeroonis[0].F += float64(i)
-		bytes, err := json.Marshal(Testeroonis[0])
+		bytes, err = json.Marshal(Testeroonis[0])
 		if err != nil {
 			log.Fatalf("err %+v", err)
 		}
 
 		// Create an object (Item) to put in the database
-		Objs = append(Objs, object.New(fmt.Sprintf("some_id_%d", i), bytes, map[string]interface{}{
-			"another": i % 10,
-		}))
+		Objs[i] = object.New(fmt.Sprintf("some_id_%d", i), bytes, []string{"another"})
+		// map[string]interface{}{
+		// 	"another": i % 10,
+		// }))
 	}
 }

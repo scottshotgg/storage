@@ -24,7 +24,7 @@ type Changelog struct {
 // MarshalBinary implements encoding.BinaryMarshaler
 func (c *Changelog) MarshalBinary() (data []byte, err error) {
 	return proto.Marshal(&pb.Changelog{
-		Id:        c.ID,
+		ID:        c.ID,
 		Timestamp: c.Timestamp,
 		ItemID:    c.ObjectID,
 	})
@@ -32,14 +32,16 @@ func (c *Changelog) MarshalBinary() (data []byte, err error) {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (c *Changelog) UnmarshalBinary(data []byte) error {
-	var s pb.Changelog
+	var (
+		s   pb.Changelog
+		err = proto.Unmarshal(data, &s)
+	)
 
-	err := proto.Unmarshal(data, &s)
 	if err != nil {
 		return err
 	}
 
-	c.ID = s.GetId()
+	c.ID = s.GetID()
 	c.ObjectID = s.GetItemID()
 	c.Timestamp = s.GetTimestamp()
 
@@ -64,9 +66,9 @@ func GenChangelogID() string {
 
 func GenInsertChangelog(i Item) *Changelog {
 	return &Changelog{
-		ID:        i.ID() + "-" + GenChangelogID(),
-		ObjectID:  i.ID(),
-		Timestamp: i.Timestamp(),
+		ID:        i.GetID() + "-" + GenChangelogID(),
+		ObjectID:  i.GetID(),
+		Timestamp: i.GetTimestamp(),
 	}
 }
 

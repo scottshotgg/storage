@@ -1,4 +1,4 @@
-package store_test
+package multi_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scottshotgg/storage/store"
+	"github.com/scottshotgg/storage/impl/multi"
 
 	dstore "github.com/pizzahutdigital/datastore"
 	"github.com/scottshotgg/storage/impl/datastore"
@@ -17,28 +17,31 @@ import (
 )
 
 var (
-	s store.Store
+	s multi.DB
 )
 
 func init() {
-	db := datastore.DB{
-		Instance: &dstore.DSInstance{},
-	}
+	var (
+		db = datastore.DB{
+			Instance: &dstore.DSInstance{},
+		}
 
-	// initialize Datastore client session for mythor metadata
-	err := db.Instance.Initialize(dstore.DSConfig{
-		Context:            context.Background(),
-		ServiceAccountFile: "/Users/sgg7269/Documents/serviceAccountFiles/ds-serviceaccount.json",
-		ProjectID:          "phdigidev",
-		Namespace:          "storage_test",
-	})
+		// initialize Datastore client session for mythor metadata
+		err = db.Instance.Initialize(dstore.DSConfig{
+			Context:            context.Background(),
+			ServiceAccountFile: "/Users/sgg7269/Documents/serviceAccountFiles/ds-serviceaccount.json",
+			ProjectID:          "phdigidev",
+			Namespace:          "storage_test",
+		})
+	)
+
 	if err != nil {
 		log.Fatalf("err %+v", err)
 	}
 
 	s.Stores = append(s.Stores, &db)
 
-	db2 := redis.DB{
+	var db2 = redis.DB{
 		Instance: redigo.NewClient(&redigo.Options{
 			Addr: "localhost:6379",
 			// Password:   os.Getenv("RP"),
@@ -84,9 +87,9 @@ func init() {
 }
 
 func TestGet(t *testing.T) {
-	ctx := context.Background()
+	var ctx = context.Background()
 
-	item, err := s.Get(ctx, "some_id_59")
+	var item, err = s.Get(ctx, "some_id_59")
 	if err != nil {
 		t.Fatalf("err: %+v", err)
 	}
@@ -109,7 +112,7 @@ func TestGet(t *testing.T) {
 // }
 
 func TestAudit(t *testing.T) {
-	err := s.Audit()
+	var err = s.Audit()
 	if err != nil {
 		t.Errorf("%+v", err)
 	}

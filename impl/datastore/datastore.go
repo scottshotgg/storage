@@ -7,8 +7,8 @@ import (
 	"time"
 
 	dstore "cloud.google.com/go/datastore"
-	"github.com/hashicorp/go-multierror"
-	"github.com/scottshotgg/storage/impl/datastore"
+	multierror "github.com/hashicorp/go-multierror"
+	"github.com/scottshotgg/storage/audit"
 	"github.com/scottshotgg/storage/object"
 	"github.com/scottshotgg/storage/storage"
 	"google.golang.org/api/iterator"
@@ -16,7 +16,7 @@ import (
 
 // DB implements Storage from the storage package
 type DB struct {
-	Instance *datastore.DSInstance
+	Instance *dstore.DSInstance
 }
 
 const (
@@ -25,7 +25,7 @@ const (
 
 var (
 	ErrTimeout                   = errors.New("Timeout")
-	dberrors.ErrNotImplemented            = errors.New("Not implemented")
+	ErrNotImplemented            = errors.New("Not implemented")
 	ErrTransactionAmountExceeded = errors.New("Only 12 items can be batched; this is a Google Datastore limit")
 )
 

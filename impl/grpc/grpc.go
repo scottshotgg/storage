@@ -154,6 +154,7 @@ func (db *DB) GetMulti(ctx context.Context, ids []string) ([]storage.Item, error
 	return protoToItems(res.GetItems()), nil
 }
 
+// TODO: Not Implemented
 func (db *DB) GetAll(ctx context.Context) ([]storage.Item, error) {
 	// TODO: this will be harder since it's a stream; look a ShitStreamer
 	return nil, dberrors.ErrNotImplemented
@@ -189,6 +190,7 @@ func (db *DB) Delete(id string) error {
 	return err
 }
 
+// TODO: Not Implemented
 func (db *DB) Iterator() (storage.Iter, error) {
 	// TODO: this will be harder since it's a stream; look a ShitStreamer
 	var res, err = db.Instance.Iterator(context.Background(), &pb.IteratorReq{})
@@ -201,9 +203,10 @@ func (db *DB) Iterator() (storage.Iter, error) {
 	// TODO: implement this
 	return &Iter{
 		I: res,
-	}, nil
+	}, dberrors.ErrNotImplemented
 }
 
+// TODO: Not Implemented
 func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error) {
 	// TODO: this will be harder since it's a stream; look a ShitStreamer
 	// Make the next call get more things, make this return largely async
@@ -211,9 +214,9 @@ func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error
 	var (
 		// Could make value have a stringer on it...
 		// Encode the value; it will be decoded on the other side
+		res pb.Storage_IteratorByClient
 		buf bytes.Buffer
 		err = gob.NewEncoder(&buf).Encode(value)
-		res pb.Storage_IteratorByClient
 	)
 
 	if err != nil {
@@ -235,23 +238,27 @@ func (db *DB) IteratorBy(key, op string, value interface{}) (storage.Iter, error
 	// TODO: implement this
 	return &IterBy{
 		I: res,
-	}, nil
+	}, dberrors.ErrNotImplemented
 }
 
 // TODO: Haven't done any changelog stuff yet for grpc
 
+// TODO: Not Implemented
 func (db *DB) GetChangelogsForObject(id string) ([]storage.Changelog, error) {
 	return nil, dberrors.ErrNotImplemented
 }
 
+// TODO: Not Implemented
 func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
 	return nil, dberrors.ErrNotImplemented
 }
 
+// TODO: Not Implemented
 func (db *DB) DeleteChangelogs(ids ...string) error {
 	return dberrors.ErrNotImplemented
 }
 
+// TODO: Not Implemented
 func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
 	return nil, dberrors.ErrNotImplemented
 }

@@ -4,6 +4,13 @@ import (
 	pb "github.com/scottshotgg/storage/protobufs"
 )
 
+// TODO: might try doing this later and using this for the Object Value
+type Value interface {
+	// Require proto marshalers
+	Marshal() (data []byte, err error)
+	Unmarshal(data []byte) error
+}
+
 // type Key interface {
 // 	Type() keyType
 // 	Value() interface{}
@@ -18,6 +25,7 @@ type Item interface {
 	GetValue() []byte
 	GetTimestamp() int64
 	GetKeys() []string
+	GetDeleted() bool
 
 	// These are needed mainly for Redis
 	MarshalBinary() (data []byte, err error)

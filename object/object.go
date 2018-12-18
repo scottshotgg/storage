@@ -3,7 +3,7 @@ package object
 import (
 	dstore "cloud.google.com/go/datastore"
 	"github.com/golang/protobuf/proto"
-	dberrors "github.com/scottshotgg/errors"
+	dberrors "github.com/scottshotgg/storage/errors"
 	pb "github.com/scottshotgg/storage/protobufs"
 	"github.com/scottshotgg/storage/storage"
 )
@@ -16,8 +16,8 @@ type Object struct {
 	value     []byte
 	timestamp int64
 	keys      []string
+	deleted   bool
 	// keys      map[string]interface{}
-	// disable   bool
 }
 
 func New(id string, value []byte, keys []string) *Object {
@@ -125,6 +125,10 @@ func (o *Object) GetTimestamp() int64 {
 
 func (o *Object) GetKeys() []string {
 	return o.keys
+}
+
+func (o *Object) GetDeleted() bool {
+	return o.deleted
 }
 
 func (o *Object) Marshal() ([]byte, error) {
