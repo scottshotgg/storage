@@ -119,13 +119,14 @@ service Storage {
 }
 
 message Item {
-  string id = 1;
+  string ID = 1;
   bytes value = 2;
   int64 timestamp = 3;
+  repeated string keys = 4;
 }
 
 message Changelog {
-  string id = 1;
+  string ID = 1;
   int64 timestamp = 2;
   string itemID = 3;
 }
@@ -141,7 +142,7 @@ message IDReq {}
 message IDRes {
   int64 status = 1;
   string description = 2;
-  string id = 3;
+  string ID = 3;
 }
 
 // Get
@@ -172,7 +173,7 @@ message GetByRes {
 
 // GetMulti
 message GetMultiReq {
-  repeated string ids = 1;
+  repeated string IDs = 1;
 }
 
 message GetMultiRes {
@@ -212,7 +213,7 @@ message SetMultiRes {
 
 // Delete
 message DeleteReq {
-  string id = 1;
+  string ID = 1;
 }
 
 message DeleteRes {

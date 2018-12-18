@@ -1,5 +1,6 @@
 # TODO
 
+- Require marshalers/encoders on the `storage.Item` interface and then attempt to use that as the protobuf objects
 - Move grpc-gateway stuff except for protobufs folder to a new repo since the server has to vendor the protobufs anyways
 - Implement proto.Marshaler and json.Marshaler
 - Change MarshalBinary to use proto.Marshaler

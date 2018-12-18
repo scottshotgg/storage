@@ -108,7 +108,7 @@ func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	}
 
 	// Decode the proto into the object
-	return object.FromProto(res.Item), nil
+	return res.Item, nil
 }
 
 func (db *DB) GetBy(ctx context.Context, key, op string, value interface{}, limit int) ([]storage.Item, error) {
@@ -161,7 +161,7 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.Item, error) {
 
 func (db *DB) Set(ctx context.Context, item storage.Item) error {
 	var _, err = db.Instance.Set(ctx, &pb.SetReq{
-		Item: item.ToProto(),
+		Item: item,
 	})
 
 	// Either way you return err

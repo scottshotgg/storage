@@ -4,7 +4,7 @@
     "title": "storage",
     "version": "0.0.1"
   },
-  "host": "geosearch.endpoints.phdigidev.cloud.goog",
+  "host": ".endpoints.phdigidev.cloud.goog",
   "schemes": [
     "https"
   ],
@@ -298,7 +298,7 @@
     "DeleteReq": {
       "type": "object",
       "properties": {
-        "id": {
+        "ID": {
           "type": "string"
         }
       },
@@ -376,7 +376,7 @@
     "GetMultiReq": {
       "type": "object",
       "properties": {
-        "ids": {
+        "IDs": {
           "type": "array",
           "items": {
             "type": "string"
@@ -421,7 +421,7 @@
     "Item": {
       "type": "object",
       "properties": {
-        "id": {
+        "ID": {
           "type": "string"
         },
         "value": {
@@ -431,6 +431,12 @@
         "timestamp": {
           "type": "string",
           "format": "int64"
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
