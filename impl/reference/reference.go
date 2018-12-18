@@ -24,8 +24,9 @@ type DB struct {
 }
 
 // Close should call close internally on your implementations DB and clean up any lose ends; channels, waitgroups, etc
-func (db *DB) Close() {
-	// myDB.Instance.Close()
+func (db *DB) Close() error {
+	// return myDB.Instance.Close()
+	return nil
 }
 
 func New(name, connString string) (*DB, error) {
@@ -48,6 +49,10 @@ func New(name, connString string) (*DB, error) {
 
 // All of these functions return ErrNotImplemented for now so that the interface can be satisfied
 
+func (db *DB) ID() string {
+	return "refboi"
+}
+
 func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	return nil, dberrors.ErrNotImplemented
 }
@@ -56,7 +61,7 @@ func (db *DB) GetBy(ctx context.Context, id, op string, value interface{}, limit
 	return nil, dberrors.ErrNotImplemented
 }
 
-func (db *DB) GetMulti(ctx context.Context, ids ...string) ([]storage.Item, error) {
+func (db *DB) GetMulti(ctx context.Context, ids []string) ([]storage.Item, error) {
 	return nil, dberrors.ErrNotImplemented
 }
 
@@ -98,6 +103,18 @@ func (db *DB) DeleteChangelogs(ids ...string) error {
 
 func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
 	return nil, dberrors.ErrNotImplemented
+}
+
+func (db *DB) Audit() (map[string]*storage.Changelog, error) {
+	return nil, dberrors.ErrNotImplemented
+}
+
+func (db *DB) QuickSync() error {
+	return dberrors.ErrNotImplemented
+}
+
+func (db *DB) Sync() error {
+	return dberrors.ErrNotImplemented
 }
 
 // storage.Changelog stuff: move this to it's own file

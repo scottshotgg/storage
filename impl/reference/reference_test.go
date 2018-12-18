@@ -4,20 +4,14 @@ import (
 	"testing"
 
 	"github.com/scottshotgg/storage/impl/reference"
-	"github.com/scottshotgg/storage/impl/sqlite"
 	"github.com/scottshotgg/storage/test"
 )
 
-var (
-	db  *sqlite.DB
-	err error
-)
-
 func TestNew(t *testing.T) {
-	db, err = reference.New("ref", "refstring")
+	var err error
+
+	test.DB, err = reference.New("ref", "refstring")
 	if err != nil {
 		t.Errorf("err %+v", err)
 	}
-
-	test.DB = &db
 }

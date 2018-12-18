@@ -26,7 +26,7 @@ func (c *Changelog) MarshalBinary() (data []byte, err error) {
 	return proto.Marshal(&pb.Changelog{
 		Id:        c.ID,
 		Timestamp: c.Timestamp,
-		ObjectID:  c.ObjectID,
+		ItemID:    c.ObjectID,
 	})
 }
 
@@ -40,7 +40,7 @@ func (c *Changelog) UnmarshalBinary(data []byte) error {
 	}
 
 	c.ID = s.GetId()
-	c.ObjectID = s.GetObjectID()
+	c.ObjectID = s.GetItemID()
 	c.Timestamp = s.GetTimestamp()
 
 	return nil
