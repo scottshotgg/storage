@@ -40,4 +40,6 @@ Using Storage is simple, and most of the orchestration will happen behind the sc
 
 3. In the future there will be a separate repo for the `grpc-gateway` interface (`HTTP`/`GRPC` servers) so that the lib is not clutered.
 
-4. Later on, changelogs may be done away with, however, there are some tradeoffs made with every dis/advantage so I need to think about it more. I think the changelogs work much better than an append-only-database as of now, but some thoughts have prevailed in argument against them.
+4. Later on, changelogs _may_ be done away with, however, there are some tradeoffs made with every dis/advantage so I need to think about it more. I think the changelogs work much better than an append-only-database as of now, but some thoughts have prevailed in argument against them.
+
+5. Make the `value` property on the storage.Item an interface that has to implement proto Unmarshaler an Marshaler and u
