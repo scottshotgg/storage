@@ -2,7 +2,8 @@
 
 Storage is an abstract, distributed, synchronized database orchestrator. 
 <br>
-What this means: Storage will allow you to abstract your data into an `object` format that can then be distributed across any node that completely fulfills the interface.
+
+`What this means`: Storage will allow you to abstract your data into an `object` format that can then be distributed across any node that completely fulfills the interface.
 Using Storage you can then synchronize this data to each node connected to the instance and allow it to orchestrate everything in-between.
 <br>
 
