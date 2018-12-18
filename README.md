@@ -7,13 +7,12 @@ Storage is an abstract, distributed, synchronized database orchestrator.
 Using Storage you can then synchronize this data to each node connected to the instance and allow it to orchestrate everything in-between.
 <br>
 
-Using Storage is simple, and most of the orchestration will happen behind the scenes depending on the setup. A few example setups ... will be given later ... TODO:
+Using Storage is simple, and most of the orchestration will happen behind the scenes depending on the setup. A few example setups ... will be given later ... `TODO:`
 
 <br>
 
 ## Folder structure:
 - _impl_: Impl (implementation) contains all of the current implementation that have been approached by Storage.
-<br>
 <br>
 
 ## Current implementations: (ranked in order of priority)
@@ -35,7 +34,7 @@ Using Storage is simple, and most of the orchestration will happen behind the sc
 <br>
 
 ## Plans:
-1. As of now there are no metrics collected on each store. In the future I would like to collect metrics and profile the stores to provide better data depending on the situation and the DBs given.
+1. As of now there are no metrics collected on each node. In the future I would like to collect metrics and profile the nodes to provide better data depending on the situation and the DBs given.
 
 2. In it's current immplementation, Storage has no Raft implementation either so the read repair is manual and is without consensus; this will be done in the future and is a high priority.
 
