@@ -4,7 +4,7 @@ require (
 	cloud.google.com/go v0.34.0
 	github.com/go-redis/redis v6.14.2+incompatible
 	github.com/go-stack/stack v1.8.0 // indirect
-	github.com/golang/protobuf v1.2.0
+	github.com/golang/protobuf v1.2.1-0.20181128192352-1d3f30b51784
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/uuid v1.1.0
 	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
