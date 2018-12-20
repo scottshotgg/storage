@@ -31,15 +31,15 @@ var (
 	ErrTransactionAmountExceeded = errors.New("Only 12 items can be batched; this is a Google Datastore limit")
 )
 
+// TODO: this needs to be implemented
+func (db *DB) ID() string {
+	return db.id
+}
+
 func NewFrom(i *phdstore.DSInstance) *DB {
 	return &DB{
 		Instance: i,
 	}
-}
-
-// TODO: this needs to be implemented
-func (db *DB) ID() string {
-	return db.id
 }
 
 func New(cfg phdstore.DSConfig) (*DB, error) {
