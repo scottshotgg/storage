@@ -8,6 +8,7 @@ import (
 
 	dstore "cloud.google.com/go/datastore"
 	multierror "github.com/hashicorp/go-multierror"
+	phdstore "github.com/pizzahutdigital/datastore"
 	"github.com/scottshotgg/storage/audit"
 	"github.com/scottshotgg/storage/object"
 	"github.com/scottshotgg/storage/storage"
@@ -16,6 +17,7 @@ import (
 
 // DB implements Storage from the storage package
 type DB struct {
+	id       string
 	Instance *dstore.DSInstance
 }
 
@@ -28,6 +30,25 @@ var (
 	ErrNotImplemented            = errors.New("Not implemented")
 	ErrTransactionAmountExceeded = errors.New("Only 12 items can be batched; this is a Google Datastore limit")
 )
+
+func NewFrom(i *phdstore.DSInstance) *DB {
+	return &DB{
+		Instance: i,
+	}
+}
+
+// TODO: this needs to be implemented
+func (db *DB) ID() string {
+	return db.id
+}
+
+func New(cfg phdstore.DSConfig) (*DB, error) {
+	var db = &DB{
+		Instance: &phdstore.DSInstance{},
+	}
+
+	return db, db.Instance.Initialize(cfg)
+}
 
 // Audit uses the default audit function
 func (db *DB) Audit() (map[string]*storage.Changelog, error) {
@@ -140,7 +161,7 @@ func (db *DB) GetBy(ctx context.Context, key, op string, value interface{}, limi
 	return items, nil
 }
 
-func (db *DB) GetMulti(ctx context.Context, ids ...string) (items []storage.Item, err error) {
+func (db *DB) GetMulti(ctx context.Context, ids []string) (items []storage.Item, err error) {
 	var (
 		itemChan = make(chan storage.Item, len(ids))
 		wg       sync.WaitGroup

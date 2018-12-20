@@ -22,7 +22,7 @@ func init() {
 			Instance: &dstore.DSInstance{},
 		}
 
-		// initialize Datastore client session for mythor metadata
+		// initialize Datastore client session
 		err = db.Instance.Initialize(dstore.DSConfig{
 			Context:            context.Background(),
 			ServiceAccountFile: "/Users/sgg7269/Documents/serviceAccountFiles/ds-serviceaccount.json",
