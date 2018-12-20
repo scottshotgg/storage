@@ -29,6 +29,13 @@ func (instance *DSInstance) NewQuery(kind string) *datastore.Query {
 	return datastore.NewQuery(kind).Namespace(instance.namespace)
 }
 
+// NewKey returns a new datastore name key
+func (instance *DSInstance) NewKey(kind string, name string, parent *datastore.Key) *datastore.Key {
+	key := datastore.NameKey(kind, name, parent)
+	key.Namespace = instance.namespace
+	return key
+}
+
 // Close will close the specified Datastore client contained within DSInstance
 func (instance *DSInstance) Close() {
 	instance.client.Close()
@@ -52,6 +59,15 @@ func (instance *DSInstance) Initialize(configuration DSConfig) error {
 	instance.client = *client
 	instance.namespace = configuration.Namespace
 
+	return nil
+}
+
+// GetDocumentByKey will populate result by using the provide key
+func (instance *DSInstance) GetDocumentByKey(ctx context.Context, key *datastore.Key, result interface{}) error {
+	err := instance.client.Get(ctx, key, result)
+	if err != nil {
+		return errors.Wrap(err, "DSInstance.GetDocumentByKey")
+	}
 	return nil
 }
 
@@ -115,6 +131,15 @@ func (instance *DSInstance) GetDocuments(ctx context.Context, query *datastore.Q
 func (instance *DSInstance) GetKeys(ctx context.Context, query *datastore.Query) ([]*datastore.Key, error) {
 	// attempt to populate results from Datastore client
 	return instance.client.GetAll(ctx, query, nil)
+}
+
+// UpsertDocumentByKey will insert the specified document to the datastore by key
+func (instance *DSInstance) UpsertDocumentByKey(ctx context.Context, key *datastore.Key, src interface{}) (*datastore.Key, error) {
+	res, err := instance.client.Put(ctx, key, src)
+	if err != nil {
+		return nil, errors.Wrap(err, "DSInstance.UpsertDocumentByKey")
+	}
+	return res, nil
 }
 
 // UpsertDocument will insert|update the specified document to the Datastore that conforms to the parameters being
@@ -190,6 +215,24 @@ func (instance *DSInstance) DeleteDocuments(ctx context.Context, kind string, na
 	return nil
 }
 
+// DeleteDocumentByKey is a wrapper for the datastore pkg that enables delete a single entity by key (useful for ancestors)
+func (instance *DSInstance) DeleteDocumentByKey(ctx context.Context, key *datastore.Key) error {
+	err := instance.client.Delete(ctx, key)
+	if err != nil {
+		return errors.Wrap(err, "DSInstance.DeleteDocumentByKey")
+	}
+	return nil
+}
+
+// DeleteMulti is a wrapper for the datastore pkg that enables you to delete entities by key (useful for ancestors)
+func (instance *DSInstance) DeleteMulti(ctx context.Context, keys []*datastore.Key) error {
+	err := instance.client.DeleteMulti(ctx, keys)
+	if err != nil {
+		return errors.Wrap(err, "DSInstance.DeleteMulti")
+	}
+	return nil
+}
+
 // Run will return an iterator for the provided query.
 func (instance *DSInstance) Run(ctx context.Context, query *datastore.Query) *datastore.Iterator {
 	return instance.client.Run(ctx, query)
@@ -216,4 +259,12 @@ func (instance *DSInstance) GetMultiDocuments(ctx context.Context, kind string, 
 		return errors.Wrap(err, fmt.Sprintf("DSInstance.GetMulti: keys: %v", nameKeys))
 	}
 	return nil
+}
+
+func (instance *DSInstance) Client() *datastore.Client {
+	return &instance.client
+}
+
+func (instance *DSInstance) Namespace() string {
+	return instance.namespace
 }

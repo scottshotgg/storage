@@ -37,6 +37,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5
 github.com/mongodb/mongo-go-driver v0.1.0 h1:LcpPFw0tNumIAakvNrkI9S9wdX0iOxvMLw/+hcAdHaU=
 github.com/mongodb/mongo-go-driver v0.1.0/go.mod h1:NK/HWDIIZkaYsnYa0hmtP443T5ELr0KDecmIioVuuyU=
 github.com/openzipkin/zipkin-go v0.1.1/go.mod h1:NtoC/o8u3JlF1lSlyPNswIbeQH9bJTmOf0Erfk+hxe8=
+github.com/pizzahutdigital/datastore v0.0.0-20181220195227-a7f1cefd3337 h1:SCY2KRrLU60GIE4UVj94vvEeCG2WPsAmpghcpUcI6y0=
+github.com/pizzahutdigital/datastore v0.0.0-20181220195227-a7f1cefd3337/go.mod h1:mE7HP9F/VnMRi2miOinV/bSnL38OrDhJcu9BPDbZjbg=
 github.com/pizzahutdigital/datastore v1.1.0 h1:7GYaGkGAIaJXu3psOeQyh4SvHFTLN3xDV4RRcgFIbXs=
 github.com/pizzahutdigital/datastore v1.1.0/go.mod h1:mE7HP9F/VnMRi2miOinV/bSnL38OrDhJcu9BPDbZjbg=
 github.com/pkg/errors v0.8.0 h1:WdK/asTD0HN+q6hsWO3/vpuAkAr+tw6aNJNDFFf0+qw=

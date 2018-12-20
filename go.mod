@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/mongodb/mongo-go-driver v0.1.0
-	github.com/pizzahutdigital/datastore v1.1.0
+	github.com/pizzahutdigital/datastore v0.0.0-20181220195227-a7f1cefd3337
 	github.com/pkg/errors v0.8.0
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v1.0.0 // indirect

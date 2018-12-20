@@ -2,6 +2,7 @@
 
 
 [[projects]]
+  digest = "1:4faf87b37b2a812af7c961b7d7b86c1f4832c0f44e0b8a1b247bbfc4bde3df7a"
   name = "cloud.google.com/go"
   packages = [
     "compute/metadata",
@@ -10,12 +11,14 @@
     "internal/atomiccache",
     "internal/fields",
     "internal/trace",
-    "internal/version"
+    "internal/version",
   ]
-  revision = "0fd7230b2a7505833d5f69b75cbd6c9582401479"
-  version = "v0.23.0"
+  pruneopts = "UT"
+  revision = "777200caa7fb8936aed0f12b1fd79af64cc83ec9"
+  version = "v0.24.0"
 
 [[projects]]
+  digest = "1:c6892ebe33775a89a6da197bafd468682bb8350b4ae235aed42fa531d3a9f3ca"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -25,26 +28,33 @@
     "ptypes/duration",
     "ptypes/struct",
     "ptypes/timestamp",
-    "ptypes/wrappers"
+    "ptypes/wrappers",
   ]
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
+  pruneopts = "UT"
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
+  digest = "1:e145e9710a10bc114a6d3e2738aadf8de146adaa031854ffdf7bbfe15da85e63"
   name = "github.com/googleapis/gax-go"
   packages = ["."]
+  pruneopts = "UT"
   revision = "317e0006254c44a0ac427cc52a0e083ff0b9622f"
   version = "v2.0.0"
 
 [[projects]]
+  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
+  pruneopts = "UT"
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:72272fda5a976d084e49b52cdb7165f03be05bf8f0316cd9516a72220887a1e0"
   name = "go.opencensus.io"
   packages = [
+    ".",
     "internal",
     "internal/tagencoding",
     "plugin/ocgrpc",
@@ -54,13 +64,16 @@
     "tag",
     "trace",
     "trace/internal",
-    "trace/propagation"
+    "trace/propagation",
+    "trace/tracestate",
   ]
-  revision = "f7730ab009c252771b19074bd05217d054c0c93f"
-  version = "v0.10.0"
+  pruneopts = "UT"
+  revision = "79993219becaa7e29e3b60cb67f5b8e82dee11d6"
+  version = "v0.17.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:1ae047ded1ddcbe0eca8b0772e3ff2c10e354db4c42c65b96d0386883e63904d"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -70,23 +83,35 @@
     "http2/hpack",
     "idna",
     "internal/timeseries",
-    "trace"
+    "trace",
   ]
-  revision = "dfa909b99c79129e1100513e5cd36307665e5723"
+  pruneopts = "UT"
+  revision = "49bb7cea24b1df9410e1712aa6433dae904ff66a"
 
 [[projects]]
   branch = "master"
+  digest = "1:39273b3e6c96fed52bd8f7793fc463c40b1a27a7caa51302b81d45306b9646b4"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
     "google",
     "internal",
     "jws",
-    "jwt"
+    "jwt",
   ]
-  revision = "8373c646843f3728aafb0d706e6edb223532ae73"
+  pruneopts = "UT"
+  revision = "c57b0facaced709681d9f90397429b9430a74754"
 
 [[projects]]
+  branch = "master"
+  digest = "1:0a40b0bdd57a93e741d8557465be3a2edeec408e9b6399586ad65bbe8e355796"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  pruneopts = "UT"
+  revision = "fa43e7bc11baaae89f3f902b2b4d832b68234844"
+
+[[projects]]
+  digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -102,13 +127,15 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable"
+    "unicode/rangetable",
   ]
+  pruneopts = "UT"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:b9cc7d51990fed28c014ee3755c6ccb49f4855bbd52b708c1048ed9090ee24d1"
   name = "google.golang.org/api"
   packages = [
     "googleapi",
@@ -116,11 +143,13 @@
     "internal",
     "iterator",
     "option",
-    "transport/grpc"
+    "transport/grpc",
   ]
-  revision = "de6fadef861e6dbf0af2a8d98d6c1389aaa28ca5"
+  pruneopts = "UT"
+  revision = "3f6e8463aa1d824abe11b439d178c02220079da5"
 
 [[projects]]
+  digest = "1:650bc4e9ea9194737cea5950a0a1593cfa723ae29c0d0f4ef8f173cb2a4de35a"
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -134,40 +163,47 @@
     "internal/socket",
     "internal/urlfetch",
     "socket",
-    "urlfetch"
+    "urlfetch",
   ]
-  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
-  version = "v1.0.0"
+  pruneopts = "UT"
+  revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:f5001817bf7869b109e61f1cccaf508608b2b17e06059d7ddf6fb902ae524da7"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/api/annotations",
     "googleapis/datastore/v1",
     "googleapis/rpc/code",
     "googleapis/rpc/status",
-    "googleapis/type/latlng"
+    "googleapis/type/latlng",
   ]
-  revision = "694d95ba50e67b2e363f3483057db5d4910c18f9"
+  pruneopts = "UT"
+  revision = "94acd270e44e65579b9ee3cdab25034d33fed608"
 
 [[projects]]
+  digest = "1:4ad047d772a7d4841687df9534a767a9e243885ed6d7d2ced6af5995a5dc44b3"
   name = "google.golang.org/grpc"
   packages = [
     ".",
     "balancer",
     "balancer/base",
     "balancer/roundrobin",
-    "channelz",
     "codes",
     "connectivity",
     "credentials",
     "credentials/oauth",
     "encoding",
     "encoding/proto",
-    "grpclb/grpc_lb_v1/messages",
     "grpclog",
     "internal",
+    "internal/backoff",
+    "internal/channelz",
+    "internal/envconfig",
+    "internal/grpcrand",
+    "internal/transport",
     "keepalive",
     "metadata",
     "naming",
@@ -178,14 +214,19 @@
     "stats",
     "status",
     "tap",
-    "transport"
   ]
-  revision = "41344da2231b913fa3d983840a57a6b1b7b631a1"
-  version = "v1.12.0"
+  pruneopts = "UT"
+  revision = "8dea3dc473e90c8179e519d91302d0597c0ca1d1"
+  version = "v1.15.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "20773e88173faddfa950b9d81e435fa7bccee6f1f59e556017bd0d899bdbc291"
+  input-imports = [
+    "cloud.google.com/go/datastore",
+    "github.com/pkg/errors",
+    "golang.org/x/net/context",
+    "google.golang.org/api/option",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
