@@ -17,5 +17,5 @@ var (
 	ErrUnableToParseRPCRes = errors.New(UnableToParseRPCResString)
 	ErrEncodingValue       = errors.New(EncodingValueString)
 	ErrCouldNotOpenDB      = errors.New(CouldNotOpenDBString)
-	errNilDB               = errors.New(NilDBString)
+	ErrNilDB               = errors.New(NilDBString)
 )
