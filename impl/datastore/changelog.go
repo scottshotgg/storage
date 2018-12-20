@@ -4,6 +4,7 @@ import (
 	"context"
 
 	dstore "cloud.google.com/go/datastore"
+	dberrors "github.com/scottshotgg/storage/errors"
 	"github.com/scottshotgg/storage/storage"
 )
 
