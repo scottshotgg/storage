@@ -8,6 +8,7 @@ const (
 	UnableToParseRPCResString = "Unable to parse RPC response"
 	EncodingValueString       = "Could not encode value"
 	CouldNotOpenDBString      = "Could not open DB"
+	NilDBString               = "Cannot use nil DB"
 )
 
 var (
@@ -16,4 +17,5 @@ var (
 	ErrUnableToParseRPCRes = errors.New(UnableToParseRPCResString)
 	ErrEncodingValue       = errors.New(EncodingValueString)
 	ErrCouldNotOpenDB      = errors.New(CouldNotOpenDBString)
+	errNilDB               = errors.New(NilDBString)
 )
