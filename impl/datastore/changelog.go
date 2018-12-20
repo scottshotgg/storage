@@ -7,7 +7,7 @@ import (
 )
 
 type ChangelogIter struct {
-	I *dstorage.Iterator
+	I *storage.Iterator
 }
 
 func (db *DB) ChangelogIterator() (storage.ChangelogIter, error) {
