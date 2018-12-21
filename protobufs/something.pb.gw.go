@@ -89,20 +89,12 @@ func request_Storage_GetMulti_0(ctx context.Context, marshaler runtime.Marshaler
 
 }
 
-func request_Storage_GetAll_0(ctx context.Context, marshaler runtime.Marshaler, client StorageClient, req *http.Request, pathParams map[string]string) (Storage_GetAllClient, runtime.ServerMetadata, error) {
+func request_Storage_GetAll_0(ctx context.Context, marshaler runtime.Marshaler, client StorageClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq GetAllReq
 	var metadata runtime.ServerMetadata
 
-	stream, err := client.GetAll(ctx, &protoReq)
-	if err != nil {
-		return nil, metadata, err
-	}
-	header, err := stream.Header()
-	if err != nil {
-		return nil, metadata, err
-	}
-	metadata.HeaderMD = header
-	return stream, metadata, nil
+	msg, err := client.GetAll(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
 
 }
 
@@ -340,7 +332,7 @@ func RegisterStorageHandlerClient(ctx context.Context, mux *runtime.ServeMux, cl
 			return
 		}
 
-		forward_Storage_GetAll_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_Storage_GetAll_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -540,7 +532,7 @@ var (
 
 	forward_Storage_GetMulti_0 = runtime.ForwardResponseMessage
 
-	forward_Storage_GetAll_0 = runtime.ForwardResponseStream
+	forward_Storage_GetAll_0 = runtime.ForwardResponseMessage
 
 	forward_Storage_Set_0 = runtime.ForwardResponseMessage
 

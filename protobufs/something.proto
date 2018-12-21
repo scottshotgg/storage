@@ -59,7 +59,7 @@ service Storage {
     };
   }
 
-  rpc GetAll(GetAllReq) returns (stream GetAllRes) {
+  rpc GetAll(GetAllReq) returns (GetAllRes) {
     option (google.api.http) = {
       get: "/v1/getall"
     };
@@ -183,7 +183,6 @@ message GetMultiRes {
   repeated Item items = 3;
 }
 
-// GetAll - this should reeeeeaaallly be a stream
 message GetAllReq {}
 
 message GetAllRes {
