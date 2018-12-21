@@ -3,7 +3,6 @@ option go_package = "protobuf";
 
 import "google/api/annotations.proto";
 import "protoc-gen-swagger/options/annotations.proto";
-import "google/protobuf/any.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   info: {
@@ -249,7 +248,7 @@ message AuditReq {}
 message AuditRes {
   int64 status = 1;
   string description = 2;
-  map<string, google.protobuf.Any> changelogs = 3;
+  map<string, Changelog> changelogs = 3;
 }
 
 // QuickSync
