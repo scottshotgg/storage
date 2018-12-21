@@ -36,8 +36,8 @@ type Item interface {
 	Unmarshal(data []byte) error
 
 	// // Require Gob encoding/decoding to be implemented
-	GobEncode() ([]byte, error)
-	GobDecode([]byte) error
+	// GobEncode() ([]byte, error)
+	// GobDecode([]byte) error
 
 	ToProto() *pb.Item
 }

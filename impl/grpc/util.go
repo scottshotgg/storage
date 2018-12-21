@@ -23,7 +23,7 @@ func itemsToProto(items []storage.Item) []*pb.Item {
 
 	for i := range items {
 		// pbItems[i] = items[i].ToProto()
-		items[i] = pbItems[i]
+		pbItems[i] = items.ToProto()
 	}
 
 	return pbItems
