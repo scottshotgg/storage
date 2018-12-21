@@ -2,42 +2,78 @@ syntax = "proto3";
 option go_package = "protobuf";
 package storage;
 
+message UpsertAttributes {
+  bytes value = 1;
+  map<string, bytes> secondaryKeys = 3;
+}
+
+message DeleteAttributes {
+  bool deleted = 1;
+}
+
 message Item {
+  // ID and timestamp are required regardless of operation
   string ID = 1;
-  bytes value = 2;
-  int64 timestamp = 3;
-  repeated string keys = 4;
-  bool deleted = 5;
+  int64 timestamp = 2;
+
+  oneof operation {
+    // If performing an upsert, you will fill this
+    UpsertAttributes upsertAttr = 3;
+
+    // If performing a delete, you will give this value
+    DeleteAttributes deleteAttr = 4;
+  }
 }
 
 // Default value means all of these are off, meaning a default request will return you:
-// An iterator that gives you keys only, and doesn't have a limit
+// Only the key and there will be no limit
 message Config {
   // KeysOnly makes sense only in the context of a non-direct query
   bool data = 1;
-  bool singlePayload = 2;
-  int64 limit = 3;
+  // Don't try to control the iterator through the RPC, let the interface take care of that and sent to a different
+  // handler if this is set
+  // bool singlePayload = 2;
+  int64 limit = 2;
+}
+
+// Filterset contains the set of information making up the filter operation
+message FilterSet {
+  string key = 1;
+  string op = 2;
+  bytes value = 3;
 }
 
 message Filter {
-  // Make the ID from: key:op:value
+  // The ID will be - key:op:value; this might be used in the return
   string ID = 1;
-  string key = 2;
-  string op = 3;
-  bytes value = 4;
 
-  Config cfg = 5;
+  // These values will be AND'd together during the query
+  repeated FilterSet set = 2;
+
+  // Filter-level config; the global override config will be taken into account BEFORE the local config
+  Config cfg = 3;
 }
 
 message Direct {
-  // This will by default find all of those values and return an iterator WITH data
-  // since if you already have the keys, it does not make sense to only get keys back
+  // This will by default return data instead of only the keys like filters sincs
+  // if you already have the keys, it does not make sense to only get keys back
   repeated string IDs = 1;
 }
 
+message Override {
+  // Limit override for the entire query
+  int32 limit = 1;
+}
+
 message Query {
+  // Direct object accesses
   Direct direct = 1;
+
+  // These values will be OR'd together during the query
   repeated Filter filters = 2;
+
+  // Override settings
+  Override override = 3;
 }
 
 // enum different status errors here
