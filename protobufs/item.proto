@@ -1,0 +1,70 @@
+syntax = "proto3";
+option go_package = "protobuf";
+package storage;
+
+message Item {
+  string ID = 1;
+  bytes value = 2;
+  int64 timestamp = 3;
+  repeated string keys = 4;
+  bool deleted = 5;
+}
+
+// Default value means all of these are off, meaning a default request will return you:
+// An iterator that gives you keys only, and doesn't have a limit
+message Config {
+  // KeysOnly makes sense only in the context of a non-direct query
+  bool data = 1;
+  bool singlePayload = 2;
+  int64 limit = 3;
+}
+
+message Filter {
+  // Make the ID from: key:op:value
+  string ID = 1;
+  string key = 2;
+  string op = 3;
+  bytes value = 4;
+
+  Config cfg = 5;
+}
+
+message Direct {
+  // This will by default find all of those values and return an iterator WITH data
+  // since if you already have the keys, it does not make sense to only get keys back
+  repeated string IDs = 1;
+}
+
+message Query {
+  Direct direct = 1;
+  repeated Filter filters = 2;
+}
+
+// enum different status errors here
+
+message Status {
+  int32 code = 1;
+  string description = 2;
+}
+
+message Res {
+  Status status = 1;
+
+  // Only allow an item OR just a string for the ID
+  oneof res {
+    string ID = 2;
+    Item item = 3;
+  }
+}
+
+message ItemRes {
+  map<string,Res> items = 1;
+}
+
+// For now just return the filter array in the same order that you got it in
+// Will work well with go funcs
+message QueryRes {
+  ItemRes queryRes = 1;
+  repeated ItemRes filterRes = 2;
+  int32 length = 3;
+}

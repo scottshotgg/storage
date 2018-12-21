@@ -1,0 +1,127 @@
+syntax = "proto3";
+option go_package = "protobuf";
+package storage;
+
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+import "item.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  info: {
+    title: "storage";
+    version: "0.0.1";
+  };
+
+  schemes: HTTPS;
+  host: ".endpoints.phdigidev.cloud.goog";
+  consumes: "application/json";
+  produces: "application/json";
+
+  security_definitions: {
+    security: {
+      key: "firebase";
+      value: {
+        type: TYPE_OAUTH2,
+        in: IN_HEADER
+        description: "Used to authenticate Firebase",
+        flow: FLOW_IMPLICIT,
+        authorization_url: "https://securetoken.google.com/phdigidev"
+      };
+    }
+  }
+  security: [
+    {
+      security_requirement: {
+        key: "firebase";
+        value: {};
+      }
+    }
+  ]
+};
+
+service Storage {
+  rpc Get(Query) returns (QueryRes) {
+    option (google.api.http) = {
+      post: "/v1/get"
+      body: "*"
+    };
+  }
+
+  // // rpc GetBy(GetByReq) returns (GetByRes) {
+  // //   option (google.api.http) = {
+  // //     post: "/v1/getby"
+  // //     body: "*"
+  // //   };
+  // // }
+
+  // // rpc GetMulti(GetMultiReq) returns (GetMultiRes) {
+  // //   option (google.api.http) = {
+  // //     post: "/v1/multi/get"
+  // //     body: "*"
+  // //   };
+  // // }
+
+  // // rpc GetAll(GetAllReq) returns (GetAllRes) {
+  // //   option (google.api.http) = {
+  // //     get: "/v1/getall"
+  // //   };
+  // // }
+
+  // rpc Set(SetReq) returns (SetRes) {
+  //   option (google.api.http) = {
+  //     post: "/v1/set"
+  //     body: "*"
+  //   };
+  // }
+
+  // // rpc SetMulti(SetMultiReq) returns (SetMultiRes) {
+  // //   option (google.api.http) = {
+  // //     post: "/v1/multi/set"
+  // //     body: "*"
+  // //   };
+  // // }
+
+  // rpc Delete(DeleteReq) returns (DeleteRes) {
+  //   option (google.api.http) = {
+  //     delete: "/v1/delete"
+  //     body: "*"
+  //   };
+  // }
+
+  // rpc Iterator(IteratorReq) returns (stream IteratorRes) {
+  //   option (google.api.http) = {
+  //     get: "/v1/iterator"
+  //   };
+  // }
+
+  // // rpc IteratorBy(IteratorByReq) returns (stream IteratorByRes) {
+  // //   option (google.api.http) = {
+  // //     post: "/v1/iteratorby"
+  // //     body: "*"
+  // //   };
+  // // }
+
+  // rpc Audit(AuditReq) returns (AuditRes) {
+  //   option (google.api.http) = {
+  //     get: "/v1/audit"
+  //   };
+  // }
+
+  // rpc QuickSync(QuickSyncReq) returns (QuickSyncRes) {
+  //   option (google.api.http) = {
+  //     get: "/v1/quicksync"
+  //   };
+  // }
+
+  // rpc Sync(SyncReq) returns (SyncRes) {
+  //   option (google.api.http) = {
+  //     get: "/v1/sync"
+  //   };
+  // }
+}
+
+message Changelog {
+  string ID = 1;
+  int64 timestamp = 2;
+  string itemID = 3;
+}

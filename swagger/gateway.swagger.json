@@ -1,0 +1,210 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "storage",
+    "version": "0.0.1"
+  },
+  "host": ".endpoints.phdigidev.cloud.goog",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/get": {
+      "post": {
+        "operationId": "Get",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/storageQueryRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/storageQuery"
+            }
+          }
+        ],
+        "tags": [
+          "Storage"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "storageConfig": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "boolean",
+          "format": "boolean",
+          "title": "KeysOnly makes sense only in the context of a non-direct query"
+        },
+        "singlePayload": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "limit": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "title": "Default value means all of these are off, meaning a default request will return you:\nAn iterator that gives you keys only, and doesn't have a limit"
+    },
+    "storageDirect": {
+      "type": "object",
+      "properties": {
+        "IDs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "This will by default find all of those values and return an iterator WITH data\nsince if you already have the keys, it does not make sense to only get keys back"
+        }
+      }
+    },
+    "storageFilter": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "type": "string",
+          "title": "Make the ID from: key:op:value"
+        },
+        "key": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        },
+        "cfg": {
+          "$ref": "#/definitions/storageConfig"
+        }
+      }
+    },
+    "storageItem": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "int64"
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deleted": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
+    "storageItemRes": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/storageRes"
+          }
+        }
+      }
+    },
+    "storageQuery": {
+      "type": "object",
+      "properties": {
+        "direct": {
+          "$ref": "#/definitions/storageDirect"
+        },
+        "filters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/storageFilter"
+          }
+        }
+      }
+    },
+    "storageQueryRes": {
+      "type": "object",
+      "properties": {
+        "queryRes": {
+          "$ref": "#/definitions/storageItemRes"
+        },
+        "filterRes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/storageItemRes"
+          }
+        },
+        "length": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "For now just return the filter array in the same order that you got it in\nWill work well with go funcs"
+    },
+    "storageRes": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/storageStatus"
+        },
+        "ID": {
+          "type": "string"
+        },
+        "item": {
+          "$ref": "#/definitions/storageItem"
+        }
+      }
+    },
+    "storageStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "firebase": {
+      "type": "oauth2",
+      "description": "Used to authenticate Firebase",
+      "in": "header",
+      "flow": "implicit",
+      "authorizationUrl": "https://securetoken.google.com/phdigidev"
+    }
+  },
+  "security": [
+    {
+      "firebase": []
+    }
+  ]
+}
