@@ -15,14 +15,14 @@
     "application/json"
   ],
   "paths": {
-    "/v1/get": {
+    "/v1/operation": {
       "post": {
-        "operationId": "Get",
+        "operationId": "Operation",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/storageQueryRes"
+              "$ref": "#/definitions/storageOperationRes"
             }
           }
         },
@@ -32,7 +32,197 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/storageQuery"
+              "$ref": "#/definitions/storageOperationReq"
+            }
+          }
+        ],
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
+    "/v1/operation/delete/stream": {
+      "delete": {
+        "operationId": "StreamDelete",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/definitions/storageRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": " (streaming inputs)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/storageReq"
+            }
+          }
+        ],
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
+    "/v1/operation/delete/{ID}": {
+      "delete": {
+        "operationId": "Delete",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/storageRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/storageReq"
+            }
+          }
+        ],
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
+    "/v1/operation/get/stream": {
+      "post": {
+        "operationId": "StreamGet",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/definitions/storageRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": " (streaming inputs)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/storageOperationReq"
+            }
+          }
+        ],
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
+    "/v1/operation/get/{ID}": {
+      "get": {
+        "operationId": "Get",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/storageRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
+    "/v1/operation/set": {
+      "post": {
+        "operationId": "Set",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/storageRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/storageReq"
+            }
+          }
+        ],
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
+    "/v1/operation/set/stream": {
+      "post": {
+        "operationId": "StreamSet",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/definitions/storageRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": " (streaming inputs)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/storageReq"
+            }
+          }
+        ],
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
+    "/v1/operation/stream": {
+      "post": {
+        "operationId": "StreamOperation",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/definitions/storageOperationRes"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": " (streaming inputs)",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/storageOperationReq"
             }
           }
         ],
@@ -43,6 +233,72 @@
     }
   },
   "definitions": {
+    "protobufListValue": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufValue"
+          },
+          "description": "Repeated field of dynamically typed values."
+        }
+      },
+      "description": "`ListValue` is a wrapper around a repeated field of values.\n\nThe JSON representation for `ListValue` is JSON array."
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "protobufStruct": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/protobufValue"
+          },
+          "description": "Unordered map of dynamically typed values."
+        }
+      },
+      "description": "`Struct` represents a structured data value, consisting of fields\nwhich map to dynamically typed values. In some languages, `Struct`\nmight be supported by a native representation. For example, in\nscripting languages like JS a struct is represented as an\nobject. The details of that representation are described together\nwith the proto support for the language.\n\nThe JSON representation for `Struct` is JSON object."
+    },
+    "protobufValue": {
+      "type": "object",
+      "properties": {
+        "null_value": {
+          "$ref": "#/definitions/protobufNullValue",
+          "description": "Represents a null value."
+        },
+        "number_value": {
+          "type": "number",
+          "format": "double",
+          "description": "Represents a double value."
+        },
+        "string_value": {
+          "type": "string",
+          "description": "Represents a string value."
+        },
+        "bool_value": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Represents a boolean value."
+        },
+        "struct_value": {
+          "$ref": "#/definitions/protobufStruct",
+          "description": "Represents a structured value."
+        },
+        "list_value": {
+          "$ref": "#/definitions/protobufListValue",
+          "description": "Represents a repeated `Value`."
+        }
+      },
+      "description": "`Value` represents a dynamically typed value which can be either\nnull, a number, a string, a boolean, a recursive struct value, or a\nlist of values. A producer of value is expected to set one of that\nvariants, absence of any variant indicates an error.\n\nThe JSON representation for `Value` is JSON value."
+    },
     "storageConfig": {
       "type": "object",
       "properties": {
@@ -51,36 +307,82 @@
           "format": "boolean",
           "title": "KeysOnly makes sense only in the context of a non-direct query"
         },
-        "singlePayload": {
-          "type": "boolean",
-          "format": "boolean"
-        },
         "limit": {
           "type": "string",
-          "format": "int64"
+          "format": "int64",
+          "title": "Don't try to control the iterator through the RPC, let the interface take care of that and sent to a different\nhandler if this is set\nbool singlePayload = 2;"
+        },
+        "type": {
+          "$ref": "#/definitions/storageEnumOperationType"
         }
       },
-      "title": "Default value means all of these are off, meaning a default request will return you:\nAn iterator that gives you keys only, and doesn't have a limit"
+      "title": "Default value means all of these are off, meaning a default request will return you:\nOnly the key and there will be no limit"
+    },
+    "storageDeleteAttributes": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
     },
     "storageDirect": {
       "type": "object",
       "properties": {
-        "IDs": {
+        "type": {
+          "$ref": "#/definitions/storageEnumOperationType"
+        },
+        "items": {
           "type": "array",
           "items": {
-            "type": "string"
-          },
-          "title": "This will by default find all of those values and return an iterator WITH data\nsince if you already have the keys, it does not make sense to only get keys back"
+            "$ref": "#/definitions/storageItem"
+          }
         }
       }
+    },
+    "storageEnumOperationType": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "SET",
+        "DELETE"
+      ],
+      "default": "GET"
+    },
+    "storageEnumStatusCode": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "SUCCESS",
+        "NOT_FOUND",
+        "ALREADY_DELETED"
+      ],
+      "default": "UNKNOWN"
     },
     "storageFilter": {
       "type": "object",
       "properties": {
         "ID": {
           "type": "string",
-          "title": "Make the ID from: key:op:value"
+          "title": "The ID will be - key:op:value; this might be used in the return"
         },
+        "set": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/storageFilterSet"
+          },
+          "title": "These values will be AND'd together during the query"
+        },
+        "cfg": {
+          "$ref": "#/definitions/storageConfig",
+          "title": "Filter-level config; the global override config will be taken into account BEFORE the local config"
+        }
+      }
+    },
+    "storageFilterSet": {
+      "type": "object",
+      "properties": {
         "key": {
           "type": "string"
         },
@@ -90,39 +392,32 @@
         "value": {
           "type": "string",
           "format": "byte"
-        },
-        "cfg": {
-          "$ref": "#/definitions/storageConfig"
         }
-      }
+      },
+      "title": "Filterset contains the set of information making up the filter operation"
     },
     "storageItem": {
       "type": "object",
       "properties": {
         "ID": {
-          "type": "string"
-        },
-        "value": {
           "type": "string",
-          "format": "byte"
+          "title": "ID and timestamp are required regardless of operation"
         },
         "timestamp": {
           "type": "string",
           "format": "int64"
         },
-        "keys": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "upsert": {
+          "$ref": "#/definitions/storageUpsertAttributes",
+          "title": "If performing an upsert, you will fill this value"
         },
-        "deleted": {
-          "type": "boolean",
-          "format": "boolean"
+        "delete": {
+          "$ref": "#/definitions/storageDeleteAttributes",
+          "title": "If performing a delete, you will give this value"
         }
       }
     },
-    "storageItemRes": {
+    "storageItemMap": {
       "type": "object",
       "properties": {
         "items": {
@@ -133,30 +428,39 @@
         }
       }
     },
-    "storageQuery": {
+    "storageOperationReq": {
       "type": "object",
       "properties": {
         "direct": {
-          "$ref": "#/definitions/storageDirect"
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/storageDirect"
+          },
+          "title": "Direct object mutations"
         },
         "filters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/storageFilter"
-          }
+          },
+          "title": "These values will be OR'd together during the query"
+        },
+        "override": {
+          "$ref": "#/definitions/storageOverride",
+          "title": "Override settings"
         }
       }
     },
-    "storageQueryRes": {
+    "storageOperationRes": {
       "type": "object",
       "properties": {
         "queryRes": {
-          "$ref": "#/definitions/storageItemRes"
+          "$ref": "#/definitions/storageItemMap"
         },
         "filterRes": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/storageItemRes"
+            "$ref": "#/definitions/storageItemMap"
           }
         },
         "length": {
@@ -166,17 +470,43 @@
       },
       "title": "For now just return the filter array in the same order that you got it in\nWill work well with go funcs"
     },
+    "storageOverride": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Limit override for the entire query"
+        }
+      }
+    },
+    "storageReq": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "type": "string"
+        }
+      }
+    },
     "storageRes": {
       "type": "object",
       "properties": {
         "status": {
           "$ref": "#/definitions/storageStatus"
         },
-        "ID": {
-          "type": "string"
-        },
         "item": {
           "$ref": "#/definitions/storageItem"
+        }
+      }
+    },
+    "storageSecondaryValue": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/definitions/protobufValue"
         }
       }
     },
@@ -184,11 +514,26 @@
       "type": "object",
       "properties": {
         "code": {
-          "type": "integer",
-          "format": "int32"
+          "$ref": "#/definitions/storageEnumStatusCode"
         },
         "description": {
           "type": "string"
+        }
+      }
+    },
+    "storageUpsertAttributes": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "$ref": "#/definitions/protobufValue",
+          "title": "Item value"
+        },
+        "secondaryKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/storageSecondaryValue"
+          },
+          "title": "All of the secondary accessable key:value pairs"
         }
       }
     }
