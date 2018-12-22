@@ -6,8 +6,9 @@ protoc -I/usr/local/include -I. \
   --swagger_out=logtostderr=true,allow_delete_body=true:../swagger \
   --grpc-gateway_out=logtostderr=true,allow_delete_body=true:. \
   ./*.proto \
-&& \
-# Generate the easyjson fast un/marshal bindings
-easyjson -all *.pb.go
-# Need to figure out relative paths.
-# Need to figure out how to rename the swagger to name-dev.
+# && 
+# \
+# # Generate the easyjson fast un/marshal bindings
+# easyjson -all *.pb.go
+# # Need to figure out relative paths.
+# # Need to figure out how to rename the swagger to name-dev.

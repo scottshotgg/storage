@@ -3,15 +3,14 @@
 
 package protobuf
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import _ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-import _ "google.golang.org/genproto/googleapis/api/annotations"
-
 import (
-	context "golang.org/x/net/context"
+	context "context"
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -23,64 +22,306 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type Changelog struct {
-	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Timestamp            int64    `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	ItemID               string   `protobuf:"bytes,3,opt,name=itemID,proto3" json:"itemID,omitempty"`
+type ItemMap struct {
+	Items                map[string]*Res `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *ItemMap) Reset()         { *m = ItemMap{} }
+func (m *ItemMap) String() string { return proto.CompactTextString(m) }
+func (*ItemMap) ProtoMessage()    {}
+func (*ItemMap) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f1a937782ebbded5, []int{0}
+}
+
+func (m *ItemMap) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ItemMap.Unmarshal(m, b)
+}
+func (m *ItemMap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ItemMap.Marshal(b, m, deterministic)
+}
+func (m *ItemMap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ItemMap.Merge(m, src)
+}
+func (m *ItemMap) XXX_Size() int {
+	return xxx_messageInfo_ItemMap.Size(m)
+}
+func (m *ItemMap) XXX_DiscardUnknown() {
+	xxx_messageInfo_ItemMap.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ItemMap proto.InternalMessageInfo
+
+func (m *ItemMap) GetItems() map[string]*Res {
+	if m != nil {
+		return m.Items
+	}
+	return nil
+}
+
+type Res struct {
+	Status               *Status  `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Item                 *Item    `protobuf:"bytes,3,opt,name=item,proto3" json:"item,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Changelog) Reset()         { *m = Changelog{} }
-func (m *Changelog) String() string { return proto.CompactTextString(m) }
-func (*Changelog) ProtoMessage()    {}
-func (*Changelog) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gateway_818c093896f7535e, []int{0}
-}
-func (m *Changelog) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Changelog.Unmarshal(m, b)
-}
-func (m *Changelog) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Changelog.Marshal(b, m, deterministic)
-}
-func (dst *Changelog) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Changelog.Merge(dst, src)
-}
-func (m *Changelog) XXX_Size() int {
-	return xxx_messageInfo_Changelog.Size(m)
-}
-func (m *Changelog) XXX_DiscardUnknown() {
-	xxx_messageInfo_Changelog.DiscardUnknown(m)
+func (m *Res) Reset()         { *m = Res{} }
+func (m *Res) String() string { return proto.CompactTextString(m) }
+func (*Res) ProtoMessage()    {}
+func (*Res) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f1a937782ebbded5, []int{1}
 }
 
-var xxx_messageInfo_Changelog proto.InternalMessageInfo
+func (m *Res) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Res.Unmarshal(m, b)
+}
+func (m *Res) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Res.Marshal(b, m, deterministic)
+}
+func (m *Res) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Res.Merge(m, src)
+}
+func (m *Res) XXX_Size() int {
+	return xxx_messageInfo_Res.Size(m)
+}
+func (m *Res) XXX_DiscardUnknown() {
+	xxx_messageInfo_Res.DiscardUnknown(m)
+}
 
-func (m *Changelog) GetID() string {
+var xxx_messageInfo_Res proto.InternalMessageInfo
+
+func (m *Res) GetStatus() *Status {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+func (m *Res) GetItem() *Item {
+	if m != nil {
+		return m.Item
+	}
+	return nil
+}
+
+type Req struct {
+	ID                   string   `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Req) Reset()         { *m = Req{} }
+func (m *Req) String() string { return proto.CompactTextString(m) }
+func (*Req) ProtoMessage()    {}
+func (*Req) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f1a937782ebbded5, []int{2}
+}
+
+func (m *Req) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Req.Unmarshal(m, b)
+}
+func (m *Req) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Req.Marshal(b, m, deterministic)
+}
+func (m *Req) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Req.Merge(m, src)
+}
+func (m *Req) XXX_Size() int {
+	return xxx_messageInfo_Req.Size(m)
+}
+func (m *Req) XXX_DiscardUnknown() {
+	xxx_messageInfo_Req.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Req proto.InternalMessageInfo
+
+func (m *Req) GetID() string {
 	if m != nil {
 		return m.ID
 	}
 	return ""
 }
 
-func (m *Changelog) GetTimestamp() int64 {
+// For now just return the filter array in the same order that you got it in
+// Will work well with go funcs
+type OperationRes struct {
+	QueryRes             *ItemMap   `protobuf:"bytes,1,opt,name=queryRes,proto3" json:"queryRes,omitempty"`
+	FilterRes            []*ItemMap `protobuf:"bytes,2,rep,name=filterRes,proto3" json:"filterRes,omitempty"`
+	Length               int32      `protobuf:"varint,3,opt,name=length,proto3" json:"length,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
+}
+
+func (m *OperationRes) Reset()         { *m = OperationRes{} }
+func (m *OperationRes) String() string { return proto.CompactTextString(m) }
+func (*OperationRes) ProtoMessage()    {}
+func (*OperationRes) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f1a937782ebbded5, []int{3}
+}
+
+func (m *OperationRes) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_OperationRes.Unmarshal(m, b)
+}
+func (m *OperationRes) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_OperationRes.Marshal(b, m, deterministic)
+}
+func (m *OperationRes) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_OperationRes.Merge(m, src)
+}
+func (m *OperationRes) XXX_Size() int {
+	return xxx_messageInfo_OperationRes.Size(m)
+}
+func (m *OperationRes) XXX_DiscardUnknown() {
+	xxx_messageInfo_OperationRes.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_OperationRes proto.InternalMessageInfo
+
+func (m *OperationRes) GetQueryRes() *ItemMap {
 	if m != nil {
-		return m.Timestamp
+		return m.QueryRes
+	}
+	return nil
+}
+
+func (m *OperationRes) GetFilterRes() []*ItemMap {
+	if m != nil {
+		return m.FilterRes
+	}
+	return nil
+}
+
+func (m *OperationRes) GetLength() int32 {
+	if m != nil {
+		return m.Length
 	}
 	return 0
 }
 
-func (m *Changelog) GetItemID() string {
+type OperationReq struct {
+	// Direct object mutations
+	Direct []*Direct `protobuf:"bytes,1,rep,name=direct,proto3" json:"direct,omitempty"`
+	// These values will be OR'd together during the query
+	Filters []*Filter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	// Override settings
+	Override             *Override `protobuf:"bytes,3,opt,name=override,proto3" json:"override,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
+}
+
+func (m *OperationReq) Reset()         { *m = OperationReq{} }
+func (m *OperationReq) String() string { return proto.CompactTextString(m) }
+func (*OperationReq) ProtoMessage()    {}
+func (*OperationReq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f1a937782ebbded5, []int{4}
+}
+
+func (m *OperationReq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_OperationReq.Unmarshal(m, b)
+}
+func (m *OperationReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_OperationReq.Marshal(b, m, deterministic)
+}
+func (m *OperationReq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_OperationReq.Merge(m, src)
+}
+func (m *OperationReq) XXX_Size() int {
+	return xxx_messageInfo_OperationReq.Size(m)
+}
+func (m *OperationReq) XXX_DiscardUnknown() {
+	xxx_messageInfo_OperationReq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_OperationReq proto.InternalMessageInfo
+
+func (m *OperationReq) GetDirect() []*Direct {
 	if m != nil {
-		return m.ItemID
+		return m.Direct
 	}
-	return ""
+	return nil
+}
+
+func (m *OperationReq) GetFilters() []*Filter {
+	if m != nil {
+		return m.Filters
+	}
+	return nil
+}
+
+func (m *OperationReq) GetOverride() *Override {
+	if m != nil {
+		return m.Override
+	}
+	return nil
 }
 
 func init() {
-	proto.RegisterType((*Changelog)(nil), "storage.Changelog")
+	proto.RegisterType((*ItemMap)(nil), "storage.ItemMap")
+	proto.RegisterMapType((map[string]*Res)(nil), "storage.ItemMap.ItemsEntry")
+	proto.RegisterType((*Res)(nil), "storage.Res")
+	proto.RegisterType((*Req)(nil), "storage.Req")
+	proto.RegisterType((*OperationRes)(nil), "storage.OperationRes")
+	proto.RegisterType((*OperationReq)(nil), "storage.OperationReq")
+}
+
+func init() { proto.RegisterFile("gateway.proto", fileDescriptor_f1a937782ebbded5) }
+
+var fileDescriptor_f1a937782ebbded5 = []byte{
+	// 712 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x94, 0xcd, 0x6e, 0xd3, 0x4a,
+	0x14, 0xc7, 0xaf, 0x9d, 0x9b, 0xaf, 0xd3, 0xb4, 0x4d, 0x47, 0xb7, 0x55, 0x9a, 0x7e, 0xf9, 0xfa,
+	0x5e, 0x41, 0x88, 0x5a, 0xbb, 0x0d, 0x1b, 0x94, 0x0d, 0x2a, 0x0a, 0x45, 0x41, 0x42, 0x05, 0x47,
+	0x20, 0x51, 0xc4, 0xc2, 0x89, 0x4f, 0x1d, 0xd3, 0xc4, 0xe3, 0x78, 0xc6, 0xa9, 0x22, 0xc4, 0x06,
+	0xf1, 0x02, 0xc0, 0x8a, 0x47, 0x62, 0xcd, 0x82, 0x17, 0xe0, 0x41, 0x90, 0xc7, 0x8e, 0x53, 0x37,
+	0x2d, 0x45, 0xac, 0x32, 0x39, 0xe7, 0xef, 0xdf, 0xfc, 0xe6, 0x68, 0x34, 0xb0, 0x68, 0x9b, 0x1c,
+	0xcf, 0xcd, 0x89, 0xe6, 0xf9, 0x94, 0x53, 0x92, 0x67, 0x9c, 0xfa, 0xa6, 0x8d, 0xd5, 0x4d, 0x9b,
+	0x52, 0x7b, 0x80, 0xba, 0xe9, 0x39, 0xba, 0xe9, 0xba, 0x94, 0x9b, 0xdc, 0xa1, 0x2e, 0x8b, 0x62,
+	0xd5, 0x5d, 0xf1, 0xd3, 0xdb, 0xb3, 0xd1, 0xdd, 0x63, 0xe7, 0xa6, 0x6d, 0xa3, 0xaf, 0x53, 0x4f,
+	0x24, 0xae, 0x48, 0x83, 0xc3, 0x71, 0x18, 0xaf, 0x97, 0xa9, 0x87, 0xbe, 0xe8, 0x46, 0x05, 0xf5,
+	0x83, 0x04, 0xf9, 0x36, 0xc7, 0xe1, 0x13, 0xd3, 0x23, 0x07, 0x90, 0x0d, 0xa3, 0xac, 0x22, 0x29,
+	0x99, 0xda, 0x42, 0x63, 0x43, 0x8b, 0x6d, 0xb4, 0x38, 0x20, 0x7e, 0xd9, 0x43, 0x97, 0xfb, 0x13,
+	0x23, 0x4a, 0x56, 0x8f, 0x00, 0x66, 0x45, 0x52, 0x86, 0xcc, 0x19, 0x4e, 0x2a, 0x92, 0x22, 0xd5,
+	0x8a, 0x46, 0xb8, 0x24, 0x2a, 0x64, 0xc7, 0xe6, 0x20, 0xc0, 0x8a, 0xac, 0x48, 0xb5, 0x85, 0x46,
+	0x29, 0x41, 0x1a, 0xc8, 0x8c, 0xa8, 0xd5, 0x94, 0xef, 0x49, 0xea, 0x33, 0xc8, 0x18, 0xc8, 0xc8,
+	0x6d, 0xc8, 0x31, 0x6e, 0xf2, 0x80, 0x09, 0xc6, 0x42, 0x63, 0x39, 0xc9, 0x77, 0x44, 0xd9, 0x88,
+	0xdb, 0xe4, 0x5f, 0xf8, 0x3b, 0x14, 0xa8, 0x64, 0x44, 0x6c, 0x31, 0x65, 0x6a, 0x88, 0x96, 0xba,
+	0x1a, 0x22, 0x47, 0x64, 0x09, 0xe4, 0x76, 0x2b, 0x56, 0x92, 0xdb, 0xad, 0xf0, 0xc0, 0xa5, 0xe3,
+	0xe9, 0x10, 0xc2, 0x3d, 0x77, 0xa1, 0x30, 0x0a, 0xd0, 0x9f, 0x18, 0x38, 0xdd, 0xb5, 0x7c, 0xf9,
+	0xe0, 0x46, 0x92, 0x20, 0x1a, 0x14, 0x4f, 0x9d, 0x01, 0x47, 0x3f, 0x8c, 0xcb, 0x62, 0x4e, 0xf3,
+	0xf1, 0x59, 0x84, 0xac, 0x41, 0x6e, 0x80, 0xae, 0xcd, 0xfb, 0x42, 0x35, 0x6b, 0xc4, 0xff, 0xd4,
+	0x8f, 0x69, 0x8d, 0x51, 0x78, 0x74, 0xcb, 0xf1, 0xb1, 0xc7, 0xe3, 0xe9, 0xcf, 0x8e, 0xde, 0x12,
+	0x65, 0x23, 0x6e, 0x93, 0x3b, 0x90, 0x8f, 0xf0, 0xd3, 0xfd, 0x67, 0xc9, 0xa3, 0x68, 0xdb, 0x69,
+	0x9f, 0xec, 0x41, 0x81, 0x8e, 0xd1, 0xf7, 0x1d, 0x0b, 0xe3, 0x49, 0xad, 0x24, 0xd9, 0xe3, 0xb8,
+	0x61, 0x24, 0x91, 0xc6, 0x97, 0x2c, 0xe4, 0x3b, 0x51, 0x9b, 0x74, 0xa0, 0x98, 0xe8, 0x91, 0xd5,
+	0xd9, 0x57, 0x17, 0x94, 0xab, 0x57, 0x96, 0x99, 0x5a, 0x79, 0xff, 0xed, 0xc7, 0x67, 0x99, 0xa8,
+	0x8b, 0xfa, 0xf8, 0x40, 0x4f, 0xee, 0x5b, 0x53, 0xaa, 0x13, 0x0b, 0x96, 0x3b, 0xdc, 0x47, 0x73,
+	0xf8, 0xa7, 0xe8, 0x1d, 0x81, 0x5e, 0x57, 0xff, 0x49, 0xa1, 0x75, 0x26, 0xa0, 0x4d, 0xa9, 0x5e,
+	0x93, 0xf6, 0x25, 0x72, 0x08, 0x99, 0x47, 0xc8, 0xc9, 0xc5, 0xbb, 0x36, 0xaa, 0xa6, 0x6e, 0x9e,
+	0xba, 0x2d, 0x38, 0x15, 0xb2, 0x96, 0xe6, 0xd8, 0xc8, 0xf5, 0xb7, 0xed, 0xd6, 0x3b, 0xf2, 0x12,
+	0x8a, 0x91, 0x68, 0x08, 0xba, 0x46, 0x31, 0x4d, 0xfc, 0x4f, 0x10, 0xb7, 0xd4, 0xca, 0x3c, 0x31,
+	0x6d, 0x77, 0x1f, 0x32, 0x9d, 0x1b, 0xec, 0x36, 0x05, 0x6b, 0x4d, 0x5d, 0xb9, 0x74, 0x4a, 0xe4,
+	0xe1, 0x10, 0x9f, 0x4e, 0xdd, 0x6e, 0xc2, 0x5c, 0xa3, 0xc4, 0xe6, 0x94, 0x1e, 0x43, 0xae, 0x85,
+	0x03, 0xe4, 0xf8, 0x4b, 0xdc, 0xff, 0x02, 0xb7, 0x5d, 0x5f, 0x4f, 0xe3, 0x2c, 0xf1, 0xa5, 0x18,
+	0x5b, 0x68, 0xf7, 0x02, 0x4a, 0x91, 0xdd, 0x6f, 0x10, 0x6f, 0x09, 0xa2, 0x52, 0xdf, 0xb8, 0x92,
+	0x98, 0x72, 0x7c, 0xf0, 0x5d, 0xfa, 0x74, 0xf8, 0x55, 0x22, 0x65, 0x98, 0x3e, 0x91, 0x8d, 0xec,
+	0xbe, 0xb6, 0xaf, 0x1d, 0x54, 0x77, 0x34, 0x74, 0x2d, 0x8f, 0x3a, 0x2e, 0x67, 0x9a, 0xd7, 0xb7,
+	0x1c, 0xdb, 0xb1, 0x70, 0xac, 0xf5, 0x06, 0x34, 0xb0, 0xb4, 0xf0, 0x11, 0xad, 0x4b, 0x72, 0xa3,
+	0x6c, 0x7a, 0xde, 0xc0, 0xe9, 0x45, 0xf8, 0x37, 0x8c, 0xba, 0xcd, 0xb9, 0xca, 0xc9, 0x6b, 0x78,
+	0x05, 0x85, 0x53, 0xc7, 0xc7, 0xae, 0xc9, 0x90, 0x1c, 0x17, 0x32, 0x64, 0xeb, 0x39, 0x43, 0x4b,
+	0xe1, 0x54, 0x31, 0x03, 0xde, 0x47, 0x97, 0x87, 0x71, 0x54, 0x8e, 0xe2, 0x88, 0x22, 0xd7, 0xa4,
+	0x46, 0xad, 0xcf, 0xb9, 0xc7, 0x9a, 0xba, 0xce, 0xb0, 0x17, 0xf8, 0xc8, 0xe9, 0x19, 0xba, 0x5a,
+	0xf4, 0x74, 0x6b, 0x3d, 0x3a, 0xd4, 0x13, 0xa1, 0xee, 0x12, 0x94, 0x2e, 0xe0, 0xff, 0x3a, 0x29,
+	0x88, 0xe7, 0xb7, 0x1b, 0x9c, 0x76, 0x73, 0x62, 0x75, 0xf7, 0x67, 0x00, 0x00, 0x00, 0xff, 0xff,
+	0x22, 0x32, 0xe8, 0x6e, 0x0b, 0x06, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -95,7 +336,14 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type StorageClient interface {
-	Get(ctx context.Context, in *Query, opts ...grpc.CallOption) (*QueryRes, error)
+	Operation(ctx context.Context, in *OperationReq, opts ...grpc.CallOption) (*OperationRes, error)
+	StreamOperation(ctx context.Context, opts ...grpc.CallOption) (Storage_StreamOperationClient, error)
+	Get(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Res, error)
+	StreamGet(ctx context.Context, opts ...grpc.CallOption) (Storage_StreamGetClient, error)
+	Set(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Res, error)
+	StreamSet(ctx context.Context, opts ...grpc.CallOption) (Storage_StreamSetClient, error)
+	Delete(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Res, error)
+	StreamDelete(ctx context.Context, opts ...grpc.CallOption) (Storage_StreamDeleteClient, error)
 }
 
 type storageClient struct {
@@ -106,8 +354,48 @@ func NewStorageClient(cc *grpc.ClientConn) StorageClient {
 	return &storageClient{cc}
 }
 
-func (c *storageClient) Get(ctx context.Context, in *Query, opts ...grpc.CallOption) (*QueryRes, error) {
-	out := new(QueryRes)
+func (c *storageClient) Operation(ctx context.Context, in *OperationReq, opts ...grpc.CallOption) (*OperationRes, error) {
+	out := new(OperationRes)
+	err := c.cc.Invoke(ctx, "/storage.Storage/Operation", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageClient) StreamOperation(ctx context.Context, opts ...grpc.CallOption) (Storage_StreamOperationClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Storage_serviceDesc.Streams[0], "/storage.Storage/StreamOperation", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storageStreamOperationClient{stream}
+	return x, nil
+}
+
+type Storage_StreamOperationClient interface {
+	Send(*OperationReq) error
+	Recv() (*OperationRes, error)
+	grpc.ClientStream
+}
+
+type storageStreamOperationClient struct {
+	grpc.ClientStream
+}
+
+func (x *storageStreamOperationClient) Send(m *OperationReq) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *storageStreamOperationClient) Recv() (*OperationRes, error) {
+	m := new(OperationRes)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *storageClient) Get(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Res, error) {
+	out := new(Res)
 	err := c.cc.Invoke(ctx, "/storage.Storage/Get", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -115,17 +403,179 @@ func (c *storageClient) Get(ctx context.Context, in *Query, opts ...grpc.CallOpt
 	return out, nil
 }
 
+func (c *storageClient) StreamGet(ctx context.Context, opts ...grpc.CallOption) (Storage_StreamGetClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Storage_serviceDesc.Streams[1], "/storage.Storage/StreamGet", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storageStreamGetClient{stream}
+	return x, nil
+}
+
+type Storage_StreamGetClient interface {
+	Send(*OperationReq) error
+	Recv() (*Res, error)
+	grpc.ClientStream
+}
+
+type storageStreamGetClient struct {
+	grpc.ClientStream
+}
+
+func (x *storageStreamGetClient) Send(m *OperationReq) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *storageStreamGetClient) Recv() (*Res, error) {
+	m := new(Res)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *storageClient) Set(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Res, error) {
+	out := new(Res)
+	err := c.cc.Invoke(ctx, "/storage.Storage/Set", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageClient) StreamSet(ctx context.Context, opts ...grpc.CallOption) (Storage_StreamSetClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Storage_serviceDesc.Streams[2], "/storage.Storage/StreamSet", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storageStreamSetClient{stream}
+	return x, nil
+}
+
+type Storage_StreamSetClient interface {
+	Send(*Req) error
+	Recv() (*Res, error)
+	grpc.ClientStream
+}
+
+type storageStreamSetClient struct {
+	grpc.ClientStream
+}
+
+func (x *storageStreamSetClient) Send(m *Req) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *storageStreamSetClient) Recv() (*Res, error) {
+	m := new(Res)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *storageClient) Delete(ctx context.Context, in *Req, opts ...grpc.CallOption) (*Res, error) {
+	out := new(Res)
+	err := c.cc.Invoke(ctx, "/storage.Storage/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageClient) StreamDelete(ctx context.Context, opts ...grpc.CallOption) (Storage_StreamDeleteClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Storage_serviceDesc.Streams[3], "/storage.Storage/StreamDelete", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storageStreamDeleteClient{stream}
+	return x, nil
+}
+
+type Storage_StreamDeleteClient interface {
+	Send(*Req) error
+	Recv() (*Res, error)
+	grpc.ClientStream
+}
+
+type storageStreamDeleteClient struct {
+	grpc.ClientStream
+}
+
+func (x *storageStreamDeleteClient) Send(m *Req) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *storageStreamDeleteClient) Recv() (*Res, error) {
+	m := new(Res)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // StorageServer is the server API for Storage service.
 type StorageServer interface {
-	Get(context.Context, *Query) (*QueryRes, error)
+	Operation(context.Context, *OperationReq) (*OperationRes, error)
+	StreamOperation(Storage_StreamOperationServer) error
+	Get(context.Context, *Req) (*Res, error)
+	StreamGet(Storage_StreamGetServer) error
+	Set(context.Context, *Req) (*Res, error)
+	StreamSet(Storage_StreamSetServer) error
+	Delete(context.Context, *Req) (*Res, error)
+	StreamDelete(Storage_StreamDeleteServer) error
 }
 
 func RegisterStorageServer(s *grpc.Server, srv StorageServer) {
 	s.RegisterService(&_Storage_serviceDesc, srv)
 }
 
+func _Storage_Operation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OperationReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageServer).Operation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/storage.Storage/Operation",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageServer).Operation(ctx, req.(*OperationReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Storage_StreamOperation_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(StorageServer).StreamOperation(&storageStreamOperationServer{stream})
+}
+
+type Storage_StreamOperationServer interface {
+	Send(*OperationRes) error
+	Recv() (*OperationReq, error)
+	grpc.ServerStream
+}
+
+type storageStreamOperationServer struct {
+	grpc.ServerStream
+}
+
+func (x *storageStreamOperationServer) Send(m *OperationRes) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *storageStreamOperationServer) Recv() (*OperationReq, error) {
+	m := new(OperationReq)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func _Storage_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Query)
+	in := new(Req)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -137,9 +587,123 @@ func _Storage_Get_Handler(srv interface{}, ctx context.Context, dec func(interfa
 		FullMethod: "/storage.Storage/Get",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageServer).Get(ctx, req.(*Query))
+		return srv.(StorageServer).Get(ctx, req.(*Req))
 	}
 	return interceptor(ctx, in, info, handler)
+}
+
+func _Storage_StreamGet_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(StorageServer).StreamGet(&storageStreamGetServer{stream})
+}
+
+type Storage_StreamGetServer interface {
+	Send(*Res) error
+	Recv() (*OperationReq, error)
+	grpc.ServerStream
+}
+
+type storageStreamGetServer struct {
+	grpc.ServerStream
+}
+
+func (x *storageStreamGetServer) Send(m *Res) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *storageStreamGetServer) Recv() (*OperationReq, error) {
+	m := new(OperationReq)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Storage_Set_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Req)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageServer).Set(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/storage.Storage/Set",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageServer).Set(ctx, req.(*Req))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Storage_StreamSet_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(StorageServer).StreamSet(&storageStreamSetServer{stream})
+}
+
+type Storage_StreamSetServer interface {
+	Send(*Res) error
+	Recv() (*Req, error)
+	grpc.ServerStream
+}
+
+type storageStreamSetServer struct {
+	grpc.ServerStream
+}
+
+func (x *storageStreamSetServer) Send(m *Res) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *storageStreamSetServer) Recv() (*Req, error) {
+	m := new(Req)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Storage_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Req)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/storage.Storage/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageServer).Delete(ctx, req.(*Req))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Storage_StreamDelete_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(StorageServer).StreamDelete(&storageStreamDeleteServer{stream})
+}
+
+type Storage_StreamDeleteServer interface {
+	Send(*Res) error
+	Recv() (*Req, error)
+	grpc.ServerStream
+}
+
+type storageStreamDeleteServer struct {
+	grpc.ServerStream
+}
+
+func (x *storageStreamDeleteServer) Send(m *Res) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *storageStreamDeleteServer) Recv() (*Req, error) {
+	m := new(Req)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 var _Storage_serviceDesc = grpc.ServiceDesc{
@@ -147,40 +711,47 @@ var _Storage_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*StorageServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Operation",
+			Handler:    _Storage_Operation_Handler,
+		},
+		{
 			MethodName: "Get",
 			Handler:    _Storage_Get_Handler,
 		},
+		{
+			MethodName: "Set",
+			Handler:    _Storage_Set_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Storage_Delete_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamOperation",
+			Handler:       _Storage_StreamOperation_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "StreamGet",
+			Handler:       _Storage_StreamGet_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "StreamSet",
+			Handler:       _Storage_StreamSet_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "StreamDelete",
+			Handler:       _Storage_StreamDelete_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "gateway.proto",
-}
-
-func init() { proto.RegisterFile("gateway.proto", fileDescriptor_gateway_818c093896f7535e) }
-
-var fileDescriptor_gateway_818c093896f7535e = []byte{
-	// 371 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x91, 0xcf, 0x8e, 0xd3, 0x30,
-	0x10, 0xc6, 0x71, 0x22, 0xb6, 0xad, 0xb5, 0x54, 0x8b, 0x0f, 0xa8, 0x8a, 0x16, 0x11, 0xf5, 0x14,
-	0xad, 0x58, 0x7b, 0x37, 0xdc, 0x2a, 0x2e, 0x40, 0x45, 0xd5, 0x13, 0x6a, 0x11, 0x97, 0x22, 0x0e,
-	0x4e, 0x32, 0x75, 0x0c, 0x89, 0x6d, 0xc5, 0x93, 0x56, 0xbd, 0xf2, 0x08, 0xf0, 0x54, 0x9c, 0x39,
-	0xf0, 0x02, 0x3c, 0x08, 0x6a, 0x52, 0xfe, 0x09, 0x4e, 0x9e, 0x19, 0xfd, 0x3c, 0xfa, 0xbe, 0x6f,
-	0xe8, 0x3d, 0x25, 0x11, 0xf6, 0xf2, 0xc0, 0x5d, 0x63, 0xd1, 0xb2, 0x81, 0x47, 0xdb, 0x48, 0x05,
-	0xd1, 0xa5, 0xb2, 0x56, 0x55, 0x20, 0xa4, 0xd3, 0x42, 0x1a, 0x63, 0x51, 0xa2, 0xb6, 0xc6, 0xf7,
-	0x58, 0xf4, 0xb8, 0x7b, 0xf2, 0x6b, 0x05, 0xe6, 0xda, 0xef, 0xa5, 0x52, 0xd0, 0x08, 0xeb, 0x3a,
-	0xe2, 0x3f, 0x34, 0xd5, 0x08, 0x75, 0x5f, 0x4f, 0x57, 0x74, 0xf4, 0xa2, 0x94, 0x46, 0x41, 0x65,
-	0x15, 0x1b, 0xd3, 0x60, 0x39, 0x9f, 0x90, 0x98, 0x24, 0xa3, 0x75, 0xb0, 0x9c, 0xb3, 0x4b, 0x3a,
-	0x42, 0x5d, 0x83, 0x47, 0x59, 0xbb, 0x49, 0x10, 0x93, 0x24, 0x5c, 0xff, 0x1e, 0xb0, 0x07, 0xf4,
-	0xec, 0xb8, 0x68, 0x39, 0x9f, 0x84, 0xdd, 0x8f, 0x53, 0x97, 0x2e, 0xe8, 0xe0, 0x75, 0xaf, 0x9a,
-	0x3d, 0xa5, 0xe1, 0x02, 0x90, 0x8d, 0xf9, 0xc9, 0x06, 0x5f, 0xb5, 0xd0, 0x1c, 0xa2, 0xfb, 0x7f,
-	0xf7, 0x6b, 0xf0, 0x53, 0xf6, 0xf1, 0xeb, 0xf7, 0xcf, 0xc1, 0xf9, 0x74, 0x20, 0x76, 0xb7, 0x42,
-	0x01, 0xce, 0xc8, 0xd5, 0xf3, 0x6f, 0xe4, 0xd3, 0xb3, 0x2f, 0x84, 0x5d, 0xd0, 0x9f, 0x29, 0xa4,
-	0x77, 0x6f, 0xf8, 0x0d, 0xbf, 0x8d, 0x1e, 0x71, 0x30, 0x85, 0xb3, 0xda, 0xa0, 0xe7, 0xae, 0x2c,
-	0xb4, 0xd2, 0x05, 0xec, 0x78, 0x5e, 0xd9, 0xb6, 0xe0, 0xc7, 0x9c, 0xae, 0x48, 0x90, 0x5e, 0x48,
-	0xe7, 0x2a, 0x9d, 0x77, 0xc6, 0xc5, 0x7b, 0x6f, 0xcd, 0xec, 0x9f, 0xc9, 0xe6, 0x1d, 0x7d, 0x4b,
-	0x87, 0x5b, 0xdd, 0x40, 0x26, 0x3d, 0xb0, 0x57, 0xc3, 0x90, 0x3d, 0x7c, 0xe3, 0xa1, 0x88, 0xd1,
-	0xc6, 0xb2, 0xc5, 0x12, 0x0c, 0x1e, 0x71, 0x88, 0x5f, 0x9e, 0x90, 0x38, 0x48, 0x48, 0x9a, 0x94,
-	0x88, 0xce, 0xcf, 0x84, 0xf0, 0x90, 0xb7, 0x0d, 0xa0, 0xfd, 0x00, 0x86, 0xf7, 0xd7, 0xe1, 0xb9,
-	0xad, 0xc5, 0x2f, 0x41, 0xd9, 0x98, 0x9e, 0xff, 0xb1, 0xfe, 0xce, 0x66, 0xd8, 0x45, 0x9e, 0xb5,
-	0xdb, 0xec, 0xac, 0xab, 0x9e, 0xfc, 0x08, 0x00, 0x00, 0xff, 0xff, 0xef, 0x43, 0x7e, 0x58, 0xee,
-	0x01, 0x00, 0x00,
 }

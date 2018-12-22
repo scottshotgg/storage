@@ -5,6 +5,7 @@ package storage;
 import "google/api/annotations.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 import "item.proto";
+import "operation.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   info: {
@@ -40,88 +41,106 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service Storage {
-  rpc Get(Query) returns (QueryRes) {
+  rpc Operation(OperationReq) returns (OperationRes) {
     option (google.api.http) = {
-      post: "/v1/get"
+      post: "/v1/operation"
       body: "*"
     };
   }
 
-  // // rpc GetBy(GetByReq) returns (GetByRes) {
-  // //   option (google.api.http) = {
-  // //     post: "/v1/getby"
-  // //     body: "*"
-  // //   };
-  // // }
+  rpc StreamOperation(stream OperationReq) returns (stream OperationRes) {
+    option (google.api.http) = {
+      post: "/v1/operation/stream"
+      body: "*"
+    };
+  }
 
-  // // rpc GetMulti(GetMultiReq) returns (GetMultiRes) {
-  // //   option (google.api.http) = {
-  // //     post: "/v1/multi/get"
-  // //     body: "*"
-  // //   };
-  // // }
+  rpc Get(Req) returns (Res) {
+    option (google.api.http) = {
+      get: "/v1/operation/get/{ID}"
+    };
+  }
 
-  // // rpc GetAll(GetAllReq) returns (GetAllRes) {
-  // //   option (google.api.http) = {
-  // //     get: "/v1/getall"
-  // //   };
-  // // }
+  rpc StreamGet(stream OperationReq) returns (stream Res) {
+    option (google.api.http) = {
+      post: "/v1/operation/get/stream"
+      body: "*"
+    };
+  }
 
-  // rpc Set(SetReq) returns (SetRes) {
+  rpc Set(Req) returns (Res) {
+    option (google.api.http) = {
+      post: "/v1/operation/set"
+      body: "*"
+    };
+  }
+
+  rpc StreamSet(stream Req) returns (stream Res) {
+    option (google.api.http) = {
+      post: "/v1/operation/set/stream"
+      body: "*"
+    };
+  }
+
+  rpc Delete(Req) returns (Res) {
+    option (google.api.http) = {
+      delete: "/v1/operation/delete/{ID}"
+      body: "*"
+    };
+  }
+
+  rpc StreamDelete(stream Req) returns (stream Res) {
+    option (google.api.http) = {
+      delete: "/v1/operation/delete/stream"
+      body: "*"
+    };
+  }
+
+  // ---- Don't know if we need these
+
+  // rpc Get(OperationReq) returns (OperationRes) {
   //   option (google.api.http) = {
-  //     post: "/v1/set"
+  //     post: "/v1/operation/get"
   //     body: "*"
   //   };
   // }
 
-  // // rpc SetMulti(SetMultiReq) returns (SetMultiRes) {
-  // //   option (google.api.http) = {
-  // //     post: "/v1/multi/set"
-  // //     body: "*"
-  // //   };
-  // // }
-
-  // rpc Delete(DeleteReq) returns (DeleteRes) {
+  // rpc Delete(OperationReq) returns (OperationRes) {
   //   option (google.api.http) = {
-  //     delete: "/v1/delete"
+  //     delete: "/v1/operation/delete"
   //     body: "*"
-  //   };
-  // }
-
-  // rpc Iterator(IteratorReq) returns (stream IteratorRes) {
-  //   option (google.api.http) = {
-  //     get: "/v1/iterator"
-  //   };
-  // }
-
-  // // rpc IteratorBy(IteratorByReq) returns (stream IteratorByRes) {
-  // //   option (google.api.http) = {
-  // //     post: "/v1/iteratorby"
-  // //     body: "*"
-  // //   };
-  // // }
-
-  // rpc Audit(AuditReq) returns (AuditRes) {
-  //   option (google.api.http) = {
-  //     get: "/v1/audit"
-  //   };
-  // }
-
-  // rpc QuickSync(QuickSyncReq) returns (QuickSyncRes) {
-  //   option (google.api.http) = {
-  //     get: "/v1/quicksync"
-  //   };
-  // }
-
-  // rpc Sync(SyncReq) returns (SyncRes) {
-  //   option (google.api.http) = {
-  //     get: "/v1/sync"
   //   };
   // }
 }
 
-message Changelog {
+message ItemMap {
+  map<string, Res> items = 1;
+}
+
+message Res {
+  Status status = 1;
+  Item item = 3;
+}
+
+message Req {
   string ID = 1;
-  int64 timestamp = 2;
-  string itemID = 3;
+}
+
+// For now just return the filter array in the same order that you got it in
+// Will work well with go funcs
+message OperationRes {
+  ItemMap queryRes = 1;
+  repeated ItemMap filterRes = 2;
+  int32 length = 3;
+}
+
+message OperationReq {
+  // Direct object mutations
+  repeated Direct direct = 1;
+
+  // These values will be OR'd together during the query
+  repeated Filter filters = 2;
+
+  // Override settings
+  Override override = 3;
 }

@@ -2,9 +2,24 @@ syntax = "proto3";
 option go_package = "protobuf";
 package storage;
 
+// Figure out the datastore shit later: google/datastore/v1/entity.proto
+import "google/protobuf/struct.proto";
+// import "google.golang.org/genproto/googleapis/rpc/status";
+
+message SecondaryValue {
+  string name = 1;
+  google.protobuf.Value value = 2;
+}
+
 message UpsertAttributes {
-  bytes value = 1;
-  map<string, bytes> secondaryKeys = 3;
+  // Item value
+  google.protobuf.Value value = 1;
+
+  // All of the secondary accessable key:value pairs
+  repeated SecondaryValue secondaryKeys = 2;
+
+  // I don't think we need to store the actual value of the keys
+  // repeated string secondaryKeys = 2;
 }
 
 message DeleteAttributes {
@@ -16,91 +31,12 @@ message Item {
   string ID = 1;
   int64 timestamp = 2;
 
-  oneof operation {
-    // If performing an upsert, you will fill this
-    UpsertAttributes upsertAttr = 3;
+  // You can only perform one or the other operations
+  oneof attributes {
+    // If performing an upsert, you will fill this value
+    UpsertAttributes upsert = 3;
 
     // If performing a delete, you will give this value
-    DeleteAttributes deleteAttr = 4;
+    DeleteAttributes delete = 4;
   }
-}
-
-// Default value means all of these are off, meaning a default request will return you:
-// Only the key and there will be no limit
-message Config {
-  // KeysOnly makes sense only in the context of a non-direct query
-  bool data = 1;
-  // Don't try to control the iterator through the RPC, let the interface take care of that and sent to a different
-  // handler if this is set
-  // bool singlePayload = 2;
-  int64 limit = 2;
-}
-
-// Filterset contains the set of information making up the filter operation
-message FilterSet {
-  string key = 1;
-  string op = 2;
-  bytes value = 3;
-}
-
-message Filter {
-  // The ID will be - key:op:value; this might be used in the return
-  string ID = 1;
-
-  // These values will be AND'd together during the query
-  repeated FilterSet set = 2;
-
-  // Filter-level config; the global override config will be taken into account BEFORE the local config
-  Config cfg = 3;
-}
-
-message Direct {
-  // This will by default return data instead of only the keys like filters sincs
-  // if you already have the keys, it does not make sense to only get keys back
-  repeated string IDs = 1;
-}
-
-message Override {
-  // Limit override for the entire query
-  int32 limit = 1;
-}
-
-message Query {
-  // Direct object accesses
-  Direct direct = 1;
-
-  // These values will be OR'd together during the query
-  repeated Filter filters = 2;
-
-  // Override settings
-  Override override = 3;
-}
-
-// enum different status errors here
-
-message Status {
-  int32 code = 1;
-  string description = 2;
-}
-
-message Res {
-  Status status = 1;
-
-  // Only allow an item OR just a string for the ID
-  oneof res {
-    string ID = 2;
-    Item item = 3;
-  }
-}
-
-message ItemRes {
-  map<string,Res> items = 1;
-}
-
-// For now just return the filter array in the same order that you got it in
-// Will work well with go funcs
-message QueryRes {
-  ItemRes queryRes = 1;
-  repeated ItemRes filterRes = 2;
-  int32 length = 3;
 }
