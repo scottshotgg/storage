@@ -11,3 +11,5 @@
 - Collapse all of the IteratorX functions into just a single Iterator
 - Could collapse Audit, QuickSync, and Sync into single function ...
 - Experiment with websockets and grpc streams
+
+- Using the protobufs as the end data structure is a bit weird because it artificially forces some attributes and more or less un-controllable features onto the rpc protos
