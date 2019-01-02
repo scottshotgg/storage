@@ -57,20 +57,20 @@ type Storage interface {
 	// TODO: try doing this to encompass all of the implementations
 	// Get(ctx context.Context, query Query) ([]Item, error)
 
-	Get(ctx context.Context, query Query) (pb.Item, error)
+	Get(ctx context.Context, itemIDs []string) (pb.Item, error)
 	// GetBy(ctx context.Context, key, op string, value interface{}, limit int) ([]Item, error)
 	// GetMulti(ctx context.Context, ids []string) ([]Item, error)
 	// GetAll(ctx context.Context) ([]Item, error)
 
-	// Set(ctx context.Context, items []pb.Item) error
+	Set(ctx context.Context, items []pb.Item) error
 	// SetMulti(ctx context.Context, items []Item) error
 
-	// Delete(ctx context.Context, q Query) error
+	Delete(ctx context.Context, itemIDs []string) error
 	// DeleteBy
 	// DeleteMulti
 	// DeleteAll() error
 
-	// Iterator(ctx context.Context, q Query) (Iter, error)
+	Iterator(ctx context.Context, q Query) (Iter, error)
 	// IteratorBy(key, op string, value interface{}) (Iter, error)
 
 	// // Changelog stuff: move this to it's own file
