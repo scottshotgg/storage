@@ -28,12 +28,28 @@ func New(connString string) (*DB, error) {
 	}
 
 	// Don't need the cancelFunc
-	var ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+	var (
+		ctx, cancel   = context.WithTimeout(context.Background(), 10*time.Second)
+		connectedChan = make(chan struct{})
+	)
 
-	// Connect the client to the server
-	err = client.Connect(ctx)
-	if err != nil {
-		return nil, err
+	go func() {
+		// Connect the client to the server
+		err = client.Connect(ctx)
+		close(connectedChan)
+	}()
+
+	select {
+	// Wait for timeout
+	case <-time.After(10 * time.Second):
+		cancel()
+		return nil, dberrors.ErrTimeout
+
+	// Channel was closed indicating connection was made
+	case <-connectedChan:
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Attempt to find the Mongo server to ensure that it is up and running

@@ -27,7 +27,7 @@ func next(i *Iter) (storage.Item, error) {
 }
 
 func (i *Iter) Next() (storage.Item, error) {
-	return next()
+	return next(i)
 }
 
 func (i *IterBy) Next() (storage.Item, error) {

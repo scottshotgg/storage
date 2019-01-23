@@ -15,12 +15,12 @@ type Object struct {
 	id        string
 	value     []byte
 	timestamp int64
-	keys      []string
+	keys      map[string][]byte
 	deleted   bool
 	// keys      map[string]interface{}
 }
 
-func New(id string, value []byte, keys []string) *Object {
+func New(id string, value []byte, keys map[string][]byte) *Object {
 	return &Object{
 		id:        id,
 		value:     value,
@@ -62,49 +62,76 @@ func FromResult(res *storage.Result) *Object {
 
 // this might need to return an error
 func FromProps(props dstore.PropertyList) *Object {
+	// if props == nil {
+	// 	return nil
+	// }
+
+	// var (
+	// 	item = pb.Item{
+	// 		Keys: map[string]string{},
+	// 	}
+
+	// 	propMap  = map[string]interface{}{}
+	// 	mapValue interface{}
+	// )
+
+	// for _, prop := range props {
+	// 	propMap[prop.Name] = prop.Value
+	// }
+
+	// mapValue = propMap["id"]
+	// if mapValue == nil {
+	// 	return nil
+	// }
+
+	// item.ID = mapValue.(string)
+
+	// mapValue = propMap["value"]
+	// if mapValue == nil {
+	// 	return nil
+	// }
+
+	// item.Value = mapValue.([]byte)
+
+	// mapValue = propMap["timestamp"]
+	// if mapValue == nil {
+	// 	return nil
+	// }
+
+	// item.Timestamp = mapValue.(int64)
+
+	// for i := range props {
+	// 	item.Keys[i] = props[i].Name
+	// }
+
+	// return FromProto(&item)
+
 	if props == nil {
 		return nil
 	}
 
-	var (
-		item = pb.Item{
-			Keys: make([]string, len(props)),
-		}
-
-		propMap  = map[string]interface{}{}
-		mapValue interface{}
-	)
-
+	var propMap = map[string]interface{}{}
 	for _, prop := range props {
 		propMap[prop.Name] = prop.Value
 	}
 
-	mapValue = propMap["id"]
-	if mapValue == nil {
-		return nil
+	var (
+		id    = propMap["id"].(string)
+		value = propMap["value"].([]byte)
+		ts    = propMap["timestamp"].(int64)
+	)
+
+	delete(propMap, "id")
+	delete(propMap, "value")
+	delete(propMap, "timestamp")
+
+	return &Object{
+		id:        id,
+		value:     value,
+		timestamp: ts,
+		// Fix this later
+		// keys:      propMap,
 	}
-
-	item.ID = mapValue.(string)
-
-	mapValue = propMap["value"]
-	if mapValue == nil {
-		return nil
-	}
-
-	item.Value = mapValue.([]byte)
-
-	mapValue = propMap["timestamp"]
-	if mapValue == nil {
-		return nil
-	}
-
-	item.Timestamp = mapValue.(int64)
-
-	for i := range props {
-		item.Keys[i] = props[i].Name
-	}
-
-	return FromProto(&item)
 }
 
 func (o *Object) SetTimestamp(ts int64) {
@@ -123,7 +150,7 @@ func (o *Object) GetTimestamp() int64 {
 	return o.timestamp
 }
 
-func (o *Object) GetKeys() []string {
+func (o *Object) GetKeys() map[string][]byte {
 	return o.keys
 }
 

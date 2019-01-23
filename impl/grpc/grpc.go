@@ -52,12 +52,12 @@ func (db *DB) Open() error {
 	var err error
 
 	// Dial the GRPC connection - important to not that this is a BLOCKING call
-	db.client, err = grpc.DialContext(ctx, config.Address, append(config.Opts, grpc.WithBlock())...)
+	db.client, err = grpc.DialContext(context.Background(), db.config.Address, append(db.config.Opts, grpc.WithBlock())...)
 	if err != nil {
 		return err
 	}
 
-	db.Instance = pb.NewStorageClient(codb.clientnn)
+	db.Instance = pb.NewStorageClient(db.client)
 
 	return nil
 }
@@ -108,7 +108,7 @@ func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	}
 
 	// Decode the proto into the object
-	return res.Item, nil
+	return object.FromProto(res.Item), nil
 }
 
 func (db *DB) GetBy(ctx context.Context, key, op string, value interface{}, limit int) ([]storage.Item, error) {
@@ -142,7 +142,7 @@ func (db *DB) GetBy(ctx context.Context, key, op string, value interface{}, limi
 
 func (db *DB) GetMulti(ctx context.Context, ids []string) ([]storage.Item, error) {
 	var res, err = db.Instance.GetMulti(ctx, &pb.GetMultiReq{
-		Ids: ids,
+		IDs: ids,
 	})
 
 	if err != nil {
@@ -162,7 +162,7 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.Item, error) {
 
 func (db *DB) Set(ctx context.Context, item storage.Item) error {
 	var _, err = db.Instance.Set(ctx, &pb.SetReq{
-		Item: item,
+		Item: item.ToProto(),
 	})
 
 	// Either way you return err
@@ -182,7 +182,7 @@ func (db *DB) SetMulti(ctx context.Context, items []storage.Item) error {
 
 func (db *DB) Delete(id string) error {
 	var _, err = db.Instance.Delete(context.Background(), &pb.DeleteReq{
-		Id: id,
+		ID: id,
 	})
 
 	// Either way you return err

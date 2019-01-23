@@ -29,17 +29,17 @@ func (i *ChangelogIter) Next() (*storage.Changelog, error) {
 	return &cl, nil
 }
 
-func getLatest(cls []storage.Changelog) (*storage.Changelog, error) {
-	var latest storage.Changelog
+// func getLatest(cls []storage.Changelog) (*storage.Changelog, error) {
+// 	var latest storage.Changelog
 
-	for _, cl := range cls {
-		if cl.Timestamp > latest.Timestamp {
-			latest = cl
-		}
-	}
+// 	for _, cl := range cls {
+// 		if cl.Timestamp > latest.Timestamp {
+// 			latest = cl
+// 		}
+// 	}
 
-	return &latest, nil
-}
+// 	return &latest, nil
+// }
 
 func (db *DB) GetLatestChangelogForObject(id string) (*storage.Changelog, error) {
 	return nil, dberrors.ErrNotImplemented

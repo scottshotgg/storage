@@ -257,7 +257,7 @@ func (db *DB) Set(ctx context.Context, i storage.Item) error {
 	)
 
 	// TODO: Need to fix the keys stuff
-	for k := range i.GetKeys() {
+	for k, v := range i.GetKeys() {
 		props = append(props, dstore.Property{
 			Name:  k,
 			Value: v,

@@ -197,9 +197,9 @@ func (db *DB) GetAll(_ context.Context) ([]storage.Item, error) {
 }
 
 func buildZIndexSecondaryKey(i storage.Item) (m redigo.Z) {
-	var sk = "id::" + i.ID() + "::"
+	var sk = "id::" + i.GetID() + "::"
 
-	for key, value := range i.Keys() {
+	for key, value := range i.GetKeys() {
 		sk += fmt.Sprintf("%s::%v::", key, value)
 	}
 
@@ -210,8 +210,8 @@ func buildZIndexSecondaryKey(i storage.Item) (m redigo.Z) {
 }
 
 func (db *DB) Set(_ context.Context, i storage.Item) (err error) {
-	for key, value := range i.Keys() {
-		_, err = db.Instance.SAdd("::something::"+key, i.ID()+"::"+fmt.Sprintf("%v", value)).Result()
+	for key, value := range i.GetKeys() {
+		_, err = db.Instance.SAdd("::something::"+key, i.GetID()+"::"+fmt.Sprintf("%v", value)).Result()
 
 		// _, err = db.Instance.ZAdd("::something_sk::", buildZIndexSecondaryKey(i)).Result()
 		if err != nil {
@@ -226,12 +226,13 @@ func (db *DB) Set(_ context.Context, i storage.Item) (err error) {
 	}
 
 	i.(*object.Object).SetTimestamp(changelog.Timestamp)
-	_, err = db.Instance.HSet("something", i.ID(), i).Result()
+	_, err = db.Instance.HSet("something", i.GetID(), i).Result()
 	if err != nil {
 		// delete the changelog
+		return err
 	}
 
-	return err
+	return nil
 }
 
 func (db *DB) SetMulti(_ context.Context, items []storage.Item) error {
@@ -245,8 +246,8 @@ func (db *DB) SetMulti(_ context.Context, items []storage.Item) error {
 	)
 
 	for i := range items {
-		for key, value := range items[i].Keys() {
-			var _, err = pipe.SAdd("::something::"+key, items[i].ID()+"::"+fmt.Sprintf("%v", value)).Result()
+		for key, value := range items[i].GetKeys() {
+			var _, err = pipe.SAdd("::something::"+key, items[i].GetID()+"::"+fmt.Sprintf("%v", value)).Result()
 
 			// _, err = db.Instance.ZAdd("::something_sk::", buildZIndexSecondaryKey(i)).Result()
 			if err != nil {
@@ -255,8 +256,8 @@ func (db *DB) SetMulti(_ context.Context, items []storage.Item) error {
 		}
 
 		// Only insert unique items
-		if itemMap[items[i].ID()] == nil {
-			itemMap[items[i].ID()] = items[i]
+		if itemMap[items[i].GetID()] == nil {
+			itemMap[items[i].GetID()] = items[i]
 
 			var cl = storage.GenInsertChangelog(items[i])
 			clMap[cl.ID] = cl
@@ -293,7 +294,7 @@ func (db *DB) SetMulti(_ context.Context, items []storage.Item) error {
 	return err
 }
 
-func (db *DB) GetMulti(_ context.Context, ids ...string) ([]storage.Item, error) {
+func (db *DB) GetMulti(_ context.Context, ids []string) ([]storage.Item, error) {
 	if len(ids) == 0 {
 		return []storage.Item{}, nil
 	}
@@ -344,7 +345,7 @@ func (db *DB) GetBy(_ context.Context, key string, op string, value interface{},
 		ids = append(ids, extractIDFromKey(keys[i]))
 	}
 
-	return db.GetMulti(nil, ids...)
+	return db.GetMulti(nil, ids)
 }
 
 func (db *DB) Delete(id string) error {

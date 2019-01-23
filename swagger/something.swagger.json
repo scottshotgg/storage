@@ -20,7 +20,7 @@
         "operationId": "Audit",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/AuditRes"
             }
@@ -36,7 +36,7 @@
         "operationId": "Delete",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/DeleteRes"
             }
@@ -62,7 +62,7 @@
         "operationId": "Get",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/GetRes"
             }
@@ -86,7 +86,7 @@
         "operationId": "GetAll",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/GetAllRes"
             }
@@ -102,7 +102,7 @@
         "operationId": "GetBy",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/GetByRes"
             }
@@ -128,7 +128,7 @@
         "operationId": "Iterator",
         "responses": {
           "200": {
-            "description": "A successful response.(streaming responses)",
+            "description": "(streaming responses)",
             "schema": {
               "$ref": "#/definitions/IteratorRes"
             }
@@ -144,7 +144,7 @@
         "operationId": "IteratorBy",
         "responses": {
           "200": {
-            "description": "A successful response.(streaming responses)",
+            "description": "(streaming responses)",
             "schema": {
               "$ref": "#/definitions/IteratorByRes"
             }
@@ -170,7 +170,7 @@
         "operationId": "GetMulti",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/GetMultiRes"
             }
@@ -196,7 +196,7 @@
         "operationId": "SetMulti",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/SetMultiRes"
             }
@@ -222,7 +222,7 @@
         "operationId": "QuickSync",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/QuickSyncRes"
             }
@@ -238,7 +238,7 @@
         "operationId": "Set",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/SetRes"
             }
@@ -264,7 +264,7 @@
         "operationId": "Sync",
         "responses": {
           "200": {
-            "description": "A successful response.",
+            "description": "",
             "schema": {
               "$ref": "#/definitions/SyncRes"
             }
@@ -448,9 +448,10 @@
           "format": "int64"
         },
         "keys": {
-          "type": "array",
-          "items": {
-            "type": "string"
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "format": "byte"
           }
         },
         "deleted": {

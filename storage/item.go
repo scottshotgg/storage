@@ -24,7 +24,7 @@ type Item interface {
 	GetID() string
 	GetValue() []byte
 	GetTimestamp() int64
-	GetKeys() []string
+	GetKeys() map[string][]byte
 	GetDeleted() bool
 
 	// These are needed mainly for Redis

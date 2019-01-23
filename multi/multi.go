@@ -118,14 +118,14 @@ func drainErrs(errChan chan error) (merr *multierror.Error) {
 	Have a meta table that has all of the IDs for the DB
 */
 
-func New(db storage.Storage) (*Store, error) {
+func New(db storage.Storage) (*DB, error) {
 	// var id = v4.String()
 	// if id == "" {
 	// 	// TODO: not sure what to do here
 	// 	return nil,
 	// }
 
-	return &Store{
+	return &DB{
 		Stores: map[string]storage.Storage{
 			db.ID(): db,
 		},
@@ -134,15 +134,15 @@ func New(db storage.Storage) (*Store, error) {
 
 // TODO: need to add mutexes into other places
 
-func (db *DB) Add(db storage.Storage) {
-	s.Lock()
-	s.Unlock()
+func (db *DB) Add(s storage.Storage) {
+	db.Lock()
+	db.Unlock()
 
-	if s.Stores[db.ID()] != nil {
+	if db.Stores[s.ID()] != nil {
 		return
 	}
 
-	s.Stores[db.ID()] = db
+	db.Stores[s.ID()] = s
 }
 
 // Make:
@@ -163,9 +163,9 @@ func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 		}
 	}()
 
-	var getChan = make(chan storage.Item, len(s.Stores))
+	var getChan = make(chan storage.Item, len(db.Stores))
 
-	for _, store := range s.Stores {
+	for _, store := range db.Stores {
 		go func(store storage.Storage) {
 			var item, err = store.Get(ctx, id)
 			if err != nil {
@@ -203,13 +203,13 @@ func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 func (db *DB) Set(ctx context.Context, i storage.Item) error {
 	var (
 		wg        sync.WaitGroup
-		errChan   = make(chan error, len(s.Stores))
+		errChan   = make(chan error, len(db.Stores))
 		closeChan = make(chan struct{})
 	)
 
 	defer close(closeChan)
 
-	for _, store := range s.Stores {
+	for _, store := range db.Stores {
 		wg.Add(1)
 
 		go func(store storage.Storage) {
@@ -233,13 +233,13 @@ func (db *DB) Set(ctx context.Context, i storage.Item) error {
 func (db *DB) Delete(id string) error {
 	var (
 		wg        sync.WaitGroup
-		errChan   = make(chan error, len(s.Stores))
+		errChan   = make(chan error, len(db.Stores))
 		closeChan = make(chan struct{})
 	)
 
 	defer close(closeChan)
 
-	for _, store := range s.Stores {
+	for _, store := range db.Stores {
 		wg.Add(1)
 
 		go func(store storage.Storage) {
@@ -319,8 +319,8 @@ func (db *DB) Audit() (map[string]*storage.Changelog, error) {
 		wg sync.WaitGroup
 
 		// TODO: could run into problems here if one comes up while we are auditing
-		errChan   = make(chan error, len(s.Stores)+10)
-		clMapChan = make(chan map[string]*storage.Changelog, len(s.Stores)+10)
+		errChan   = make(chan error, len(db.Stores)+10)
+		clMapChan = make(chan map[string]*storage.Changelog, len(db.Stores)+10)
 
 		clMaps = map[string]*storage.Changelog{}
 	)
@@ -378,7 +378,7 @@ func (db *DB) Audit() (map[string]*storage.Changelog, error) {
 	}()
 
 	// Launch audit for each store asynchronously
-	for _, store := range s.Stores {
+	for _, store := range db.Stores {
 		wg.Add(1)
 
 		go func(store storage.Storage) {
@@ -410,7 +410,7 @@ func (db *DB) Audit() (map[string]*storage.Changelog, error) {
 
 func (db *DB) QuickSync() error {
 	// Audit every store first to reduce the number of changelogs we have to look through
-	var _, err = s.Audit()
+	var _, err = db.Audit()
 	if err != nil {
 		// log
 		return err
@@ -419,7 +419,7 @@ func (db *DB) QuickSync() error {
 	var storesCopy []storage.Storage
 
 	// Copy the stores incase one is added later on
-	for _, store := range s.Stores {
+	for _, store := range db.Stores {
 		storesCopy = append(storesCopy, store)
 	}
 
@@ -503,7 +503,7 @@ func (db *DB) QuickSync() error {
 func (db *DB) QuickSyncWith() error {
 	// Audit every store first to reduce the number of changelogs we have to look through
 	// clMap will contain ALL unique changelogs from ALL stores
-	var clMap, err = s.Audit()
+	var clMap, err = db.Audit()
 	if err != nil {
 		// log
 		return err
@@ -545,7 +545,7 @@ func (db *DB) QuickSyncWith() error {
 	// need to fix this
 	defer func() {
 		// put an if check here
-		var err = s.deleteAllChangelogs(deleteCLs)
+		var err = db.deleteAllChangelogs(deleteCLs)
 		if err != nil {
 			// log
 			// Need to put something here to not delete this changelog
@@ -574,7 +574,7 @@ func (db *DB) QuickSyncWith() error {
 	// with the same objectID should be kept (deleted from the deleteMap)
 
 	// Process the changelogs for each store
-	for dbID, store := range s.Stores {
+	for dbID, store := range db.Stores {
 		// Declare a context for each store
 		var ctx = context.Background()
 		wg.Add(1)
@@ -609,14 +609,14 @@ func (db *DB) QuickSyncWith() error {
 
 				// If the item that we got is older than the changelog for that item
 				// then go get the item from the store that recorded the changelog
-				if item.Timestamp() < cl.Timestamp {
+				if item.GetTimestamp() < cl.Timestamp {
 					// Check the cache for the item
 					item = itemCacheMap[cl.ObjectID]
 
 					// If the item is nil then the item needs to be cached
 					if item == nil {
 						// Get the item to be cached from the store that recorded the changelog
-						item, err = s.Stores[cl.DBID].Get(ctx, cl.ObjectID)
+						item, err = db.Stores[cl.DBID].Get(ctx, cl.ObjectID)
 						if err != nil {
 							// log
 							// Need to put something here to not delete this changelog
@@ -632,7 +632,7 @@ func (db *DB) QuickSyncWith() error {
 					// The item timestamp SHOULD be either:
 					//	1) the same if the item has not changed in the meantime
 					//	2) greater than if the item has, in which case we will still copy it
-					if item.Timestamp() < cl.Timestamp {
+					if item.GetTimestamp() < cl.Timestamp {
 						// wtf
 						// Could put something here to check the two object against each other...
 						return
@@ -661,17 +661,15 @@ func (db *DB) QuickSyncWith() error {
 func (db *DB) Sync() error {
 	var (
 		storesCopy []storage.Storage
+		wg         sync.WaitGroup
+		merr       *multierror.Error
 
 		errChan    = make(chan error, 100)
 		workerChan = make(chan struct{}, 10)
-
-		wg sync.WaitGroup
-
-		merr *multierror.Error
 	)
 
 	// Copy the stores incase one is added later on
-	for _, store := range s.Stores {
+	for _, store := range db.Stores {
 		storesCopy = append(storesCopy, store)
 	}
 
@@ -786,7 +784,7 @@ func checkStoresForItem(item storage.Item, storesCopy []storage.Storage) error {
 
 		go func(i int) {
 			// Do something with the error later
-			var item2, err = slave.Get(ctx, item.ID())
+			var item2, err = slave.Get(ctx, item.GetID())
 
 			defer func() {
 				wg.Done()
@@ -800,10 +798,10 @@ func checkStoresForItem(item storage.Item, storesCopy []storage.Storage) error {
 			}
 
 			// If the slaves timestamp is less than that of the master then copy master -> slave
-			if item2.Timestamp() < item.Timestamp() {
+			if item2.GetTimestamp() < item.GetTimestamp() {
 				err = slave.Set(ctx, item)
 				// If the masters timestamp is less that that of the slave then copy slave -> master
-			} else if item.Timestamp() < item2.Timestamp() {
+			} else if item.GetTimestamp() < item2.GetTimestamp() {
 				err = master.Set(ctx, item2)
 			}
 			// else we are assuming they are the same and/or that we can't do anything about it
@@ -875,7 +873,7 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 	)
 
 	// If the master timestamp is greater than the slaves object timestamp then update the slave
-	if item.Timestamp() < latest.Timestamp {
+	if item.GetTimestamp() < latest.Timestamp {
 		item, err = master.Get(ctx, objectID)
 		if err != nil {
 			return err
@@ -886,7 +884,7 @@ func processChangelogs(wg *sync.WaitGroup, objectID string, master, slave storag
 		if err != nil {
 			return err
 		}
-	} else if item.Timestamp() > latest.Timestamp {
+	} else if item.GetTimestamp() > latest.Timestamp {
 		// Update the masters object
 		err = master.Set(ctx, item)
 		if err != nil {
@@ -1022,7 +1020,7 @@ func (db *DB) deleteAllChangelogs(clMap map[string]*storage.Changelog) error {
 		go func(id string, cls []string) {
 			defer wg.Done()
 
-			var err = s.Stores[id].DeleteChangelogs(cls...)
+			var err = db.Stores[id].DeleteChangelogs(cls...)
 			if err != nil {
 				// log
 			}
