@@ -1,4 +1,6 @@
 pragma solidity ^0.5.2;
+
+// I don't think this works in Go... It fails to generate the ABI bindings...
 pragma experimental ABIEncoderV2;
 
 contract Crud {
