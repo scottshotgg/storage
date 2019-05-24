@@ -974,27 +974,27 @@ func getLatest(cls []storage.Changelog) *storage.Changelog {
 	return &latest
 }
 
-func handleDiff(latest, cl storage.Changelog) int {
-	fmt.Println("latest, cl", latest, cl)
+// func handleDiff(latest, cl storage.Changelog) int {
+// 	fmt.Println("latest, cl", latest, cl)
 
-	if latest.Timestamp > cl.Timestamp {
-		// Copy object from B to A
-		return -1
+// 	if latest.Timestamp > cl.Timestamp {
+// 		// Copy object from B to A
+// 		return -1
 
-	} else if latest.Timestamp < cl.Timestamp {
-		// Copy object from A to B
-		return 1
+// 	} else if latest.Timestamp < cl.Timestamp {
+// 		// Copy object from A to B
+// 		return 1
 
-	} else {
-		// they are the same, compare the types
-		// this will still return -1 or 1 in the end
-		// return -1 or 1
-	}
+// 	} else {
+// 		// they are the same, compare the types
+// 		// this will still return -1 or 1 in the end
+// 		// return -1 or 1
+// 	}
 
-	return 0
+// 	return 0
 
-	// TODO: implement this
-}
+// 	// TODO: implement this
+// }
 
 func (db *DB) deleteAllChangelogs(clMap map[string]*storage.Changelog) error {
 	var (

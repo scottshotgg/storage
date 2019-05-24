@@ -36,6 +36,8 @@ func NewFrom(db *sql.DB) *DB {
 	}
 }
 
+// Not implemented
+
 func (db *DB) Get(ctx context.Context, id string) (storage.Item, error) {
 	return nil, dberrors.ErrNotImplemented
 }
